@@ -1,0 +1,8 @@
+fixture,policy,completed,unresolved,rejected,cycles,bounded_resolution_pct,trials_per_hour,queue_p95_s,jain_fairness,avg_cpu_utilisation_pct,avg_cpu_stranding_pct,oracle_completed,oracle_unresolved,oracle_rejected,oracle_cycles,oracle_match,trial_count,horizon_s
+dev_ray47439_xgboost_deadlock,deadlock_aware,0,0,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0,0,1,0,True,1,30.0
+dev_safe_nested_xgboost,deadlock_aware,1,0,0,0,100.0,120.0,0.0,1.0,97.56,0.0,1,0,0,0,True,1,30.0
+dev_pytorch_nested_contention,deadlock_aware,1,0,1,0,50.0,120.0,0.0,0.5,93.75,0.0,1,0,1,0,True,2,30.0
+dev_fifo_hol_blocking,deadlock_aware,1,0,1,0,50.0,120.0,0.0,0.5,93.75,0.0,1,0,1,0,True,2,30.0
+dev_gpu_strict_pack_fragmentation,deadlock_aware,0,0,2,0,0.0,0.0,0.0,0.0,0.0,0.0,0,0,2,0,True,2,30.0
+dev_safe_gang_scheduled,deadlock_aware,2,0,0,0,100.0,240.0,0.0,1.0,90.91,0.0,2,0,0,0,True,2,30.0
+dev_changing_capacity_scaleup,deadlock_aware,2,0,0,0,100.0,240.0,0.0,0.7118,78.29,0.0,2,0,0,0,True,2,30.0

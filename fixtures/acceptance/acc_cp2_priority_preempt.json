@@ -1,0 +1,22 @@
+{
+  "name": "acc_cp2_priority_preempt",
+  "description": "Acceptance fixture (hash-frozen, NOT included in CP-1 totals): priority pre-emption under CP-2. A low-priority long-running job is running when a high-priority short job arrives. The CP-2 controller releases the low-priority job's parent PG and admits the high-priority job, then re-admits the low-priority job. Demonstrates that CP-2 can coordinate resource handoff. Under FIFO/greedy this coordination does not happen.",
+  "cluster": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "PACK"},
+  "bounded_horizon_s": 30,
+  "trials": [
+    {
+      "id": "low-prio-001",
+      "arrival_time": 0.0,
+      "duration": 10.0,
+      "tags": ["acceptance", "cp2", "priority", "low"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "PACK"}
+    },
+    {
+      "id": "high-prio-001",
+      "arrival_time": 2.0,
+      "duration": 3.0,
+      "tags": ["acceptance", "cp2", "priority", "high"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "PACK"}
+    }
+  ]
+}

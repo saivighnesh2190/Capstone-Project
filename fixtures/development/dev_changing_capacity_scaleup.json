@@ -1,0 +1,25 @@
+{
+  "name": "dev_changing_capacity_scaleup",
+  "description": "Changing-capacity scale-up: cluster starts at 4 CPU and scales to 8 CPU at t=10s. scale-big (6 CPU, 18s) is infeasible on the initial 4 CPU cluster; scale-small (4 CPU, 4s) fits on the initial 4 CPU cluster. Under FIFO scale-big blocks the queue head (HOL blocking); after the scale-up event scale-big is admitted (using 6 of 8 CPU), leaving only 2 CPU free — scale-small needs 4 CPU so it cannot be admitted until scale-big finishes at t=28, then runs from t=28 to t=32 (exceeds the 30s horizon). Under greedy scale-small runs first (t=0 to t=4) before the scale-up, then scale-big runs from t=10 to t=28 — both complete within the horizon.",
+  "cluster": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "PACK"},
+  "bounded_horizon_s": 30,
+  "capacity_events": [
+    {"time": 10.0, "capacity": {"cpu": 8, "gpu": 0, "memory": 16, "workers": 8, "strategy": "PACK"}}
+  ],
+  "trials": [
+    {
+      "id": "scale-big",
+      "arrival_time": 0.0,
+      "duration": 18.0,
+      "tags": ["scaleup", "big"],
+      "parent": {"cpu": 6, "gpu": 0, "memory": 4, "workers": 6, "strategy": "PACK"}
+    },
+    {
+      "id": "scale-small",
+      "arrival_time": 0.1,
+      "duration": 4.0,
+      "tags": ["scaleup", "small"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "PACK"}
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "dev_fifo_hol_blocking",
+  "description": "FIFO head-of-line blocking: an infeasible trial at the head of the queue (requests 6 CPU on a 4-CPU cluster) blocks a feasible 2-CPU trial behind it. Under FIFO both trials stall; under greedy the infeasible head is skipped and the feasible trial runs. No cycles — this is NOT a nested-resource deadlock, just a queue policy artefact.",
+  "cluster": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "PACK"},
+  "bounded_horizon_s": 30,
+  "trials": [
+    {
+      "id": "hol-stuck",
+      "arrival_time": 0.0,
+      "duration": 4.0,
+      "tags": ["fifo", "hol", "infeasible"],
+      "parent": {"cpu": 6, "gpu": 0, "memory": 4, "workers": 6, "strategy": "PACK"}
+    },
+    {
+      "id": "hol-bypass",
+      "arrival_time": 0.1,
+      "duration": 3.0,
+      "tags": ["fifo", "hol", "feasible_bypass"],
+      "parent": {"cpu": 2, "gpu": 0, "memory": 2, "workers": 2, "strategy": "PACK"}
+    }
+  ]
+}

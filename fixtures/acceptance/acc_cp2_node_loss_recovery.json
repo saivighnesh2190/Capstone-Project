@@ -1,0 +1,15 @@
+{
+  "name": "acc_cp2_node_loss_recovery",
+  "description": "Acceptance fixture (hash-frozen, NOT included in CP-1 totals): node-loss recovery under CP-2. A trial enters RUNNING, then loses its resources (simulated as a fast finish/failure). The CP-2 controller releases the parent PG, requeues the trial, and replans — the trial completes with a single safe retry. Under FIFO the same scenario ends in FAILED because no retry logic exists.",
+  "cluster": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "PACK"},
+  "bounded_horizon_s": 30,
+  "trials": [
+    {
+      "id": "nl-001",
+      "arrival_time": 0.0,
+      "duration": 4.0,
+      "tags": ["acceptance", "cp2", "node_loss", "recovery"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "PACK"}
+    }
+  ]
+}

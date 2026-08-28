@@ -1,0 +1,16 @@
+{
+  "name": "dev_ray47439_xgboost_deadlock",
+  "description": "Source case: Ray issue #47439. A 4-CPU cluster; the XGBoost tuning trial reserves a 4-CPU parent placement group, then its nested distributed trainer requests a 3-CPU child placement group. The child cannot fit because the parent holds the entire cluster. The trial enters WAITING_CHILD indefinitely and forms a self-cycle in the wait-for graph.",
+  "cluster": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "PACK"},
+  "bounded_horizon_s": 30,
+  "trials": [
+    {
+      "id": "xgb-001",
+      "arrival_time": 0.0,
+      "duration": 5.0,
+      "tags": ["xgboost", "nested", "ray47439"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "PACK"},
+      "child":  {"cpu": 3, "gpu": 0, "memory": 2, "workers": 3, "strategy": "PACK"}
+    }
+  ]
+}

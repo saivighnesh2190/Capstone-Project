@@ -1,0 +1,22 @@
+{
+  "name": "dev_safe_gang_scheduled",
+  "description": "Safe gang-scheduled jobs: two atomic gang-scheduled jobs that each reserve a placement group fitting the cluster exactly. They run sequentially without nested children, completing cleanly under both FIFO and greedy. Establishes a positive baseline that the observer does not flag false positives.",
+  "cluster": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "STRICT_PACK"},
+  "bounded_horizon_s": 30,
+  "trials": [
+    {
+      "id": "gang-001",
+      "arrival_time": 0.0,
+      "duration": 3.0,
+      "tags": ["gang", "safe"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "STRICT_PACK"}
+    },
+    {
+      "id": "gang-002",
+      "arrival_time": 3.5,
+      "duration": 3.0,
+      "tags": ["gang", "safe"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "STRICT_PACK"}
+    }
+  ]
+}

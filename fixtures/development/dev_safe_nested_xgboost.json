@@ -1,0 +1,16 @@
+{
+  "name": "dev_safe_nested_xgboost",
+  "description": "Safe control: same shape as the source case (parent + nested XGBoost child) but on a larger cluster so the child placement can be admitted without contention. Proves the observer does NOT label every nested request as a deadlock.",
+  "cluster": {"cpu": 8, "gpu": 0, "memory": 16, "workers": 8, "strategy": "PACK"},
+  "bounded_horizon_s": 30,
+  "trials": [
+    {
+      "id": "xgb-safe-001",
+      "arrival_time": 0.0,
+      "duration": 4.0,
+      "tags": ["xgboost", "nested", "safe_control"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "PACK"},
+      "child":  {"cpu": 3, "gpu": 0, "memory": 2, "workers": 3, "strategy": "PACK"}
+    }
+  ]
+}

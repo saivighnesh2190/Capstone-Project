@@ -1,0 +1,23 @@
+apiVersion: v2
+name: nestedtune-guard
+description: |
+  Helm chart for NestedTune Guard (CINT-11) — deadlock-aware distributed
+  hyperparameter tuning for nested trainers. Deploys the dashboard,
+  Python CLI, and (optionally) a KubeRay RayCluster for CP-2 live-Ray
+  validation.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/CINT-11/nestedtune-guard
+sources:
+  - https://github.com/ray-project/ray/issues/47439
+keywords:
+  - ray
+  - ray-tune
+  - placement-group
+  - deadlock
+  - distributed-training
+  - hyperparameter-tuning
+  - capstone
+maintainers:
+  - name: CINT-11 Team

@@ -1,0 +1,47 @@
+# docker-compose.yml — one-command local run of API + dashboard + simulator.
+#
+# Usage:
+#   docker compose -f deploy/docker/docker-compose.yml up --build
+#
+# Then open http://localhost:3000 in a browser.
+#
+# The compose file runs a single service (dashboard) because the Next.js
+# API routes spawn the Python CLI as a subprocess. This keeps the local
+# deployment minimal — one container, one port.
+
+services:
+  nestedtune-guard:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    image: nestedtune-guard:1.0.0
+    container_name: nestedtune-guard
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - NEXT_TELEMETRY_DISABLED=1
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "node -e \"fetch('http://localhost:3000/api/health').then(r => r.json()).then(d => process.exit(d.ok ? 0 : 1)).catch(() => process.exit(1))\""
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    volumes:
+      # Mount evidence volume so simulation outputs persist across restarts.
+      - evidence_data:/app/evidence
+    networks:
+      - nestedtune-net
+
+networks:
+  nestedtune-net:
+    driver: bridge
+
+volumes:
+  evidence_data:
+    driver: local

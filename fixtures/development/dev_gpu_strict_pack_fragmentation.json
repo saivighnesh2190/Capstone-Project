@@ -1,0 +1,24 @@
+{
+  "name": "dev_gpu_strict_pack_fragmentation",
+  "description": "GPU STRICT_PACK fragmentation: two GPU trials each reserve half the GPU pool under STRICT_PACK (2 of 4 GPUs) but each nested child demands the FULL pool (4 GPUs). Each trial is admitted because its parent fits, but each child can never fit because the other parent holds the remaining GPUs. Both trials enter WAITING_CHILD and form self-cycles — two cycles total. Even greedy cannot fix this because both parents fit at admission time.",
+  "cluster": {"cpu": 8, "gpu": 4, "memory": 16, "workers": 8, "strategy": "STRICT_PACK"},
+  "bounded_horizon_s": 30,
+  "trials": [
+    {
+      "id": "gpu-001",
+      "arrival_time": 0.0,
+      "duration": 5.0,
+      "tags": ["gpu", "strict_pack", "fragmentation"],
+      "parent": {"cpu": 2, "gpu": 2, "memory": 2, "workers": 2, "strategy": "STRICT_PACK"},
+      "child":  {"cpu": 2, "gpu": 4, "memory": 2, "workers": 2, "strategy": "STRICT_PACK"}
+    },
+    {
+      "id": "gpu-002",
+      "arrival_time": 0.1,
+      "duration": 5.0,
+      "tags": ["gpu", "strict_pack", "fragmentation"],
+      "parent": {"cpu": 2, "gpu": 2, "memory": 2, "workers": 2, "strategy": "STRICT_PACK"},
+      "child":  {"cpu": 2, "gpu": 4, "memory": 2, "workers": 2, "strategy": "STRICT_PACK"}
+    }
+  ]
+}

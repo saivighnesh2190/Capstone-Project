@@ -1,0 +1,257 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "nestedtune-guard.fullname" . }}
+  labels:
+    {{- include "nestedtune-guard.labels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nestedtune-guard.fullname" . }}-config
+  namespace: {{ include "nestedtune-guard.fullname" . }}
+  labels:
+    {{- include "nestedtune-guard.labels" . | nindent 4 }}
+data:
+  {{- range $k, $v := .Values.dashboard.env }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nestedtune-guard.fullname" . }}
+  namespace: {{ include "nestedtune-guard.fullname" . }}
+  labels:
+    {{- include "nestedtune-guard.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.dashboard.replicas }}
+  selector:
+    matchLabels:
+      {{- include "nestedtune-guard.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "nestedtune-guard.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: dashboard
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 3000
+              name: http-dashboard
+          envFrom:
+            - configMapRef:
+                name: {{ include "nestedtune-guard.fullname" . }}-config
+          {{- with .Values.dashboard.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          volumeMounts:
+            - name: evidence
+              mountPath: /app/evidence
+      volumes:
+        - name: evidence
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nestedtune-guard.fullname" . }}-svc
+  namespace: {{ include "nestedtune-guard.fullname" . }}
+  labels:
+    {{- include "nestedtune-guard.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "nestedtune-guard.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      name: http
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "nestedtune-guard.fullname" . }}-ingress
+  namespace: {{ include "nestedtune-guard.fullname" . }}
+  labels:
+    {{- include "nestedtune-guard.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "nestedtune-guard.fullname" . }}-svc
+                port:
+                  name: http
+{{- end }}
+{{- if .Values.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "nestedtune-guard.fullname" . }}-hpa
+  namespace: {{ include "nestedtune-guard.fullname" . }}
+  labels:
+    {{- include "nestedtune-guard.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "nestedtune-guard.fullname" . }}
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.hpa.cpuTargetUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.hpa.memoryTargetUtilization }}
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nestedtune-guard.fullname" . }}-egress
+  namespace: {{ include "nestedtune-guard.fullname" . }}
+  labels:
+    {{- include "nestedtune-guard.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nestedtune-guard.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+{{- if .Values.rayCluster.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kuberay
+              app.kubernetes.io/component: ray-head
+      ports:
+        - protocol: TCP
+          port: 10001
+        - protocol: TCP
+          port: 6379
+{{- end }}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+{{- end }}
+{{- if .Values.rayCluster.enabled }}
+---
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: {{ include "nestedtune-guard.fullname" . }}-ray
+  namespace: {{ include "nestedtune-guard.fullname" . }}
+  labels:
+    {{- include "nestedtune-guard.labels" . | nindent 4 }}
+spec:
+  rayVersion: {{ .Values.rayCluster.rayVersion | quote }}
+  headGroupSpec:
+    template:
+      spec:
+        containers:
+          - name: ray-head
+            image: rayproject/ray:{{ .Values.rayCluster.rayVersion }}-py311
+            {{- with .Values.rayCluster.headResources }}
+            resources:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            ports:
+              - containerPort: 6379
+                name: redis
+              - containerPort: 10001
+                name: client
+              - containerPort: 8265
+                name: dashboard
+  workerGroupSpecs:
+    - replicas: {{ .Values.rayCluster.workerReplicas }}
+      minReplicas: 1
+      maxReplicas: 4
+      groupName: work-group
+      template:
+        spec:
+          containers:
+            - name: ray-worker
+              image: rayproject/ray:{{ .Values.rayCluster.rayVersion }}-py311
+              {{- with .Values.rayCluster.workerResources }}
+              resources:
+                {{- toYaml . | nindent 14 }}
+              {{- end }}
+{{- end }}
+{{- if .Values.rayJob.enabled }}
+---
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: {{ include "nestedtune-guard.fullname" . }}-job
+  namespace: {{ include "nestedtune-guard.fullname" . }}
+  labels:
+    {{- include "nestedtune-guard.labels" . | nindent 4 }}
+spec:
+  entrypoint: {{ .Values.rayJob.entrypoint | quote }}
+  runtimeEnv:
+    envVars:
+      PYTHONPATH: "/app"
+  rayClusterSpec:
+    rayVersion: {{ .Values.rayCluster.rayVersion | quote }}
+    headGroupSpec:
+      template:
+        spec:
+          containers:
+            - name: ray-head
+              image: rayproject/ray:{{ .Values.rayCluster.rayVersion }}-py311
+              env:
+                - name: PYTHONPATH
+                  value: /app
+{{- end }}

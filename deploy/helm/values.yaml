@@ -1,0 +1,76 @@
+# Default values for the NestedTune Guard Helm chart.
+# These values can be overridden with --set or -f values.yaml.
+
+image:
+  repository: nestedtune-guard
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+# Dashboard deployment config.
+dashboard:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+  env:
+    NODE_ENV: "production"
+    NEXT_TELEMETRY_DISABLED: "1"
+    PYTHONPATH: "/app"
+    PYTHONUNBUFFERED: "1"
+
+# Service / ingress config.
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: nestedtune-guard.local
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 50m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+# HorizontalPodAutoscaler config.
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  cpuTargetUtilization: 70
+  memoryTargetUtilization: 80
+
+# NetworkPolicy config.
+networkPolicy:
+  enabled: true
+  # Restrict egress to KubeRay RayCluster + DNS + HTTPS to docs.
+
+# KubeRay RayCluster for CP-2 live-Ray validation.
+# Disabled by default; enable for CP-2 validation.
+rayCluster:
+  enabled: false
+  rayVersion: "2.10.0"
+  headResources:
+    requests:
+      cpu: 2
+      memory: 4Gi
+    limits:
+      cpu: 4
+      memory: 8Gi
+  workerReplicas: 1
+  workerResources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+
+# Optional: RayJob for CP-2 deadlock-aware controller validation.
+rayJob:
+  enabled: false
+  entrypoint: "python3 -m nestedtune_guard.cli benchmark"

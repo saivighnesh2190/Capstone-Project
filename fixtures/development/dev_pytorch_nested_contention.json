@@ -1,0 +1,23 @@
+{
+  "name": "dev_pytorch_nested_contention",
+  "description": "PyTorch nested contention: a parent trial reserves only part of the cluster (2 CPU of 4) but its nested child demands more than the entire cluster (4 CPU). The parent is admitted but the child cannot fit, creating a self-cycle. The remaining 2 CPU of free capacity is enough for a concurrent small PyTorch job with no nested child, which completes normally. Proves the observer can simultaneously track a nested deadlock AND a healthy concurrent trial.",
+  "cluster": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "PACK"},
+  "bounded_horizon_s": 30,
+  "trials": [
+    {
+      "id": "pt-001",
+      "arrival_time": 0.0,
+      "duration": 5.0,
+      "tags": ["pytorch", "nested", "contention"],
+      "parent": {"cpu": 2, "gpu": 0, "memory": 2, "workers": 2, "strategy": "PACK"},
+      "child":  {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "PACK"}
+    },
+    {
+      "id": "pt-002",
+      "arrival_time": 0.1,
+      "duration": 3.0,
+      "tags": ["pytorch", "standalone"],
+      "parent": {"cpu": 2, "gpu": 0, "memory": 2, "workers": 2, "strategy": "PACK"}
+    }
+  ]
+}

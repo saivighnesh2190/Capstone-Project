@@ -1,0 +1,273 @@
+# Kubernetes manifests for NestedTune Guard.
+#
+# Apply with:
+#   kubectl apply -f deploy/k8s/
+#
+# Includes:
+#   - namespace
+#   - ConfigMap (Python + Next.js env)
+#   - Deployment (dashboard + Python CLI)
+#   - Service (ClusterIP)
+#   - Ingress (cluster-internal access)
+#   - HPA (autoscale on CPU > 70%)
+#   - NetworkPolicy (restrict egress to Ray cluster only)
+#   - KubeRay RayCluster (for CP-2 live-Ray validation path)
+#   - KubeRay RayJob (CP-2 deadlock-aware controller on real Ray)
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nestedtune-guard
+  labels:
+    app.kubernetes.io/name: nestedtune-guard
+    app.kubernetes.io/part-of: cint-11
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nestedtune-guard-config
+  namespace: nestedtune-guard
+data:
+  NODE_ENV: "production"
+  NEXT_TELEMETRY_DISABLED: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONPATH: "/app"
+  RAY_ADDRESS: "ray://raycluster-head-svc:10001"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nestedtune-guard
+  namespace: nestedtune-guard
+  labels:
+    app: nestedtune-guard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nestedtune-guard
+  template:
+    metadata:
+      labels:
+        app: nestedtune-guard
+    spec:
+      containers:
+        - name: dashboard
+          image: nestedtune-guard:1.0.0
+          ports:
+            - containerPort: 3000
+              name: http-dashboard
+          envFrom:
+            - configMapRef:
+                name: nestedtune-guard-config
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          volumeMounts:
+            - name: evidence
+              mountPath: /app/evidence
+      volumes:
+        - name: evidence
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nestedtune-guard-svc
+  namespace: nestedtune-guard
+spec:
+  selector:
+    app: nestedtune-guard
+  ports:
+    - port: 80
+      targetPort: 3000
+      name: http
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nestedtune-guard-ingress
+  namespace: nestedtune-guard
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 50m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: nestedtune-guard.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nestedtune-guard-svc
+                port:
+                  name: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nestedtune-guard-hpa
+  namespace: nestedtune-guard
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nestedtune-guard
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nestedtune-guard-egress
+  namespace: nestedtune-guard
+spec:
+  podSelector:
+    matchLabels:
+      app: nestedtune-guard
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow access to KubeRay RayCluster (CP-2 live-Ray validation path)
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kuberay
+              app.kubernetes.io/component: ray-head
+      ports:
+        - protocol: TCP
+          port: 10001  # Ray dashboard / client
+        - protocol: TCP
+          port: 6379  # Redis (Ray internal)
+    # Allow outbound HTTPS to Ray docs (for resource card links) — outside cluster
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+---
+# KubeRay RayCluster for CP-2 live-Ray validation path.
+# This is NOT used by the CP-1 simulator; it is supplied for reviewers
+# who want to validate the CP-2 controller on a real Ray cluster.
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: raycluster
+  namespace: nestedtune-guard
+spec:
+  rayVersion: "2.10.0"
+  headGroupSpec:
+    template:
+      spec:
+        containers:
+          - name: ray-head
+            image: rayproject/ray:2.10.0-py311
+            resources:
+              requests:
+                cpu: 2
+                memory: 4Gi
+              limits:
+                cpu: 4
+                memory: 8Gi
+            ports:
+              - containerPort: 6379
+                name: redis
+              - containerPort: 10001
+                name: client
+              - containerPort: 8265
+                name: dashboard
+  workerGroupSpecs:
+    - replicas: 1
+      minReplicas: 1
+      maxReplicas: 4
+      groupName: work-group
+      template:
+        spec:
+          containers:
+            - name: ray-worker
+              image: rayproject/ray:2.10.0-py311
+              resources:
+                requests:
+                  cpu: 1
+                  memory: 2Gi
+                limits:
+                  cpu: 2
+                  memory: 4Gi
+---
+# KubeRay RayJob: runs the CP-2 deadlock-aware controller against the live
+# Ray cluster. Optional — only run during CP-2 validation.
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: nestedtune-guard-cp2-validation
+  namespace: nestedtune-guard
+spec:
+  entrypoint: "python3 -m nestedtune_guard.cli benchmark"
+  runtimeEnv:
+    envVars:
+      PYTHONPATH: "/app"
+      RAY_ADDRESS: "ray://raycluster-head-svc:10001"
+  rayClusterSpec:
+    rayVersion: "2.10.0"
+    headGroupSpec:
+      template:
+        spec:
+          containers:
+            - name: ray-head
+              image: rayproject/ray:2.10.0-py311
+              env:
+                - name: PYTHONPATH
+                  value: /app
+              volumeMounts:
+                - name: nestedtune-package
+                  mountPath: /app
+          volumes:
+            - name: nestedtune-package
+              emptyDir: {}
