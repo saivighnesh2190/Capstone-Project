@@ -1,8 +1,8 @@
 """Tests for the FastAPI service (nestedtune_guard.api).
 
 These run inside the existing pytest suite under nestedtune_guard/tests/.
-We use fastapi.testclient.TestClient (starlette, bundled with fastapi) so
-no extra httpx dependency is required.
+The API tests use fastapi.testclient.TestClient; the package's `dev` extra
+installs the required `httpx2` transport.
 """
 
 from __future__ import annotations
