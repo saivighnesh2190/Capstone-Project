@@ -39,6 +39,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local extraction/scratch exports
+/.extraction/
+
 # generated Python packaging metadata
 *.egg-info/
 
