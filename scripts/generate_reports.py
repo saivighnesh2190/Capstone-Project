@@ -57,7 +57,7 @@ PROJECT_META = {
     "guide_label": "[Project Guide Name]",
     "domain": "Distributed systems · Ray Tune · Ray Train · Python · Docker · Kubernetes",
     "date": datetime.now().strftime("%Y-%m-%d"),
-    "version": "1.0.0",
+    "version": "1.1.0",
 }
 
 SOURCE_CASE_FACTS = [
@@ -190,24 +190,31 @@ def make_pdf_report(output_path: Path, is_cp2: bool = False) -> None:
     if is_cp2:
         summary_text = (
             "This CP-2 report documents the deadlock-aware admission controller, "
-            "its recovery and fairness features, the FastAPI + Next.js dashboard, "
-            "and the Docker / Kubernetes / KubeRay deployment configurations. "
-            "CP-2 builds on the unchanged CP-1 baseline: it adds pre-admission "
-            "feasibility checking (rejecting permanently infeasible trials), hierarchical "
-            "wait-for avoidance, and bounded recovery. Across the 12 development trials, "
-            "CP-2 completes 7, rejects 5 permanently infeasible, and produces zero "
-            "unresolved deadlocks — the key claim of the capstone."
+            "its recovery, fairness, and advisory autoscaling features, the FastAPI "
+            "service plus Next.js dashboard, and the Docker / Kubernetes / KubeRay "
+            "deployment configurations. CP-2 builds on the unchanged CP-1 baseline: "
+            "it adds pre-admission feasibility checking (rejecting permanently "
+            "infeasible trials), hierarchical child-fit admission checks, bounded "
+            "recovery, and an explainable autoscaling advisor. Across the 12 "
+            "development trials, CP-2 completes 7, rejects 5 permanently infeasible, "
+            "and produces zero unresolved deadlocks — the key claim of the capstone. "
+            "The separate mutual-cycle analysis found that a two-trial cross-cycle "
+            "is unreachable under this simulator's atomic parent+child placement model; "
+            "the adjacent collateral-blocking hazard is covered by the same admission guard."
         )
     else:
         summary_text = (
             "This CP-1 report documents the deterministic, bounded, reproducible "
             "evaluation framework for the Ray #47439 placement-group deadlock. "
-            "We reproduced the source case (4/4/1/3 resource condition), implemented "
-            "FIFO and greedy scheduling baselines, built an independent wait-for "
-            "observer, and froze the baseline results. Across the 12 development "
-            "trials, FIFO completes 5/12 with 4 cycles, greedy completes 7/12 with "
-            "4 cycles — matching the source-case analysis exactly. 34 automated "
-            "tests pass with 100% oracle agreement."
+            "The structural source case was reproduced both in the simulator and "
+            "on real Ray 2.10.0 inside Docker: the child placement group remained "
+            "PENDING and the captured 4/4/1/3 accounting matched the model. We "
+            "implemented FIFO and greedy scheduling baselines, built an independent "
+            "wait-for observer, and froze the baseline results. Across the 12 "
+            "development trials, FIFO completes 5/12 with 4 cycles, greedy completes "
+            "7/12 with 4 cycles. The full suite contains 70 tests; the CP-1 gate "
+            "checks 14 FIFO/greedy oracle pairs and the benchmark reports all 21 "
+            "fixture-policy rows."
         )
     story.append(Paragraph(summary_text, body))
     story.append(Spacer(1, 0.5 * cm))
@@ -375,11 +382,11 @@ def make_pdf_report(output_path: Path, is_cp2: bool = False) -> None:
     story.append(Paragraph("<font name='Courier'>./scripts/run_cp1.sh</font>", code_style))
     story.append(Paragraph("This single command performs:", body))
     for step in [
-        "Fixture validation (all 9 fixtures)",
-        "34 automated pytest tests",
+        "Fixture validation (all 7 development + 2 acceptance fixtures)",
+        "70 automated pytest tests (34 frozen CP-1 baseline + 2 CP-2 acceptance + 34 integration/hardening tests)",
         "Partition-hash verification (canonical SHA-256)",
         "FIFO and greedy benchmarks across all 7 development fixtures",
-        "Independent expected-result oracle verification (21 (fixture, policy) pairs)",
+        "Independent expected-result oracle verification (14 FIFO/greedy CP-1 pairs; benchmark reports all 21 fixture-policy rows)",
         "Repeatability check (determinism — byte-identical across runs)",
     ]:
         story.append(Paragraph(f"• {step}", bullet_style))
@@ -458,7 +465,7 @@ def make_pdf_report(output_path: Path, is_cp2: bool = False) -> None:
     # ---- Testing ----
     story.append(Paragraph("7. Testing and validation", h1))
     for line in [
-        "34/34 automated tests passed (Python pytest).",
+        "70/70 automated tests passed (Python pytest): 34 frozen CP-1 baseline tests plus 36 additive CP-2, API, advisor, and mutual-cycle analysis tests.",
         "100% agreement with the independent expected-result oracle.",
         "7 development fixtures evaluated under all 3 policies.",
         "Stable semantic digest across repeated executions (determinism).",
@@ -477,6 +484,9 @@ def make_pdf_report(output_path: Path, is_cp2: bool = False) -> None:
         "Negative topology cases",
         "Deterministic execution (byte-identical runs)",
         "Evidence generation (JSON + CSV + chart PNG)",
+        "FastAPI endpoint smoke tests (health / scenarios / simulate / benchmark / validate)",
+        "Real-Ray 2.10.0 Docker reproduction (child PG PENDING; 4/4/1/3 accounting)",
+        "Mutual-cycle analysis (negative result under atomic simulator placement)",
     ]:
         story.append(Paragraph(f"• {area}", bullet_style))
 
@@ -485,9 +495,13 @@ def make_pdf_report(output_path: Path, is_cp2: bool = False) -> None:
     story.append(Paragraph(
         '<i>"The deterministic simulator and evidence framework were executed and '
         'verified. It models Ray placement-group behaviour, but it is not a '
-        'replacement for production-cluster benchmarking. A Ray 2.10 Docker '
-        'reproduction protocol is provided separately, and live-Ray claims require '
-        'an attached runtime trace."</i>',
+        'replacement for production-cluster benchmarking. The source topology was '
+        'also reproduced on real Ray 2.10.0 in Docker: the child placement group '
+        'remained PENDING for the full 91.8-second bounded wait, and real-Ray '
+        'resource accounting matched the simulator\'s 4/4/1/3 condition. This '
+        'validates the deadlock topology, not production performance or a multi-node '
+        'deployment. Evidence and exact steps are in '
+        'docs/RAY_REPRODUCTION_PROTOCOL.md."</i>',
         body,
     ))
     story.append(Paragraph(
@@ -511,15 +525,18 @@ def make_pdf_report(output_path: Path, is_cp2: bool = False) -> None:
             "Priority pre-emption",
             "Node-failure retry",
             "Autoscaling advice",
-            "FastAPI/dashboard operation (visualization only)",
+            "FastAPI service/dashboard operation (CP-2 integration, not CP-1 baseline)",
             "KubeRay deployment validation",
         ]:
             story.append(Paragraph(f"• {item}", bullet_style))
     else:
         story.append(Paragraph(
             "CP-2 implements the items reserved from CP-1: deadlock-aware admission, "
-            "hierarchical wait-for avoidance, bounded recovery, fairness, autoscaling "
-            "advice, FastAPI + dashboard, Docker/Kubernetes/KubeRay deployment.",
+            "hierarchical child-fit admission checks, bounded recovery, fairness, "
+            "explainable autoscaling advice, a FastAPI service plus dashboard, and "
+            "Docker/Kubernetes/KubeRay deployment configurations. These deployment "
+            "artifacts are supplied and linted; production-cluster validation is not "
+            "claimed.",
             body,
         ))
 
@@ -531,8 +548,10 @@ def make_pdf_report(output_path: Path, is_cp2: bool = False) -> None:
             'admission controller that rejects permanently infeasible trials and '
             'defers admission for trials whose child placement cannot fit. Across '
             'the 12 development trials, CP-2 completes 7, rejects 5, and produces '
-            'zero unresolved deadlocks — the key capstone claim. The CP-1 baseline '
-            'is preserved unchanged for the CP-2 evaluation."'
+            'zero unresolved deadlocks — the key capstone claim. The CP-2 package also '
+            'includes the verified FastAPI service, advisory autoscaling output, '
+            'deployment configurations, and a real-Ray 2.10.0 reproduction protocol. '
+            'The CP-1 baseline is preserved unchanged for the CP-2 evaluation."'
         )
     else:
         closing = (
@@ -540,7 +559,9 @@ def make_pdf_report(output_path: Path, is_cp2: bool = False) -> None:
             'bounded, repeatable and measurable experiment. We reproduced the exact '
             '4/4/1/3 source condition, detected the self-cycle independently, '
             'validated safe and negative controls, froze FIFO and greedy baselines, '
-            'and achieved 100% oracle agreement across 34 automated tests. CP-2 '
+            'and achieved 100% oracle agreement across the 70-test suite. The source '
+            'topology was additionally reproduced on real Ray 2.10.0 in Docker, '
+            'with the child PG PENDING and the 4/4/1/3 accounting captured. CP-2 '
             'will use this unchanged baseline to evaluate the deadlock-prevention '
             'controller."'
         )
@@ -610,24 +631,31 @@ def make_docx_report(output_path: Path, is_cp2: bool = False) -> None:
     if is_cp2:
         summary = (
             "This CP-2 report documents the deadlock-aware admission controller, "
-            "its recovery and fairness features, the FastAPI + Next.js dashboard, "
-            "and the Docker / Kubernetes / KubeRay deployment configurations. "
-            "CP-2 builds on the unchanged CP-1 baseline: it adds pre-admission "
-            "feasibility checking (rejecting permanently infeasible trials), "
-            "hierarchical wait-for avoidance, and bounded recovery. Across the 12 "
+            "its recovery, fairness, and advisory autoscaling features, the FastAPI "
+            "service plus Next.js dashboard, and the Docker / Kubernetes / KubeRay "
+            "deployment configurations. CP-2 builds on the unchanged CP-1 baseline: "
+            "it adds pre-admission feasibility checking (rejecting permanently "
+            "infeasible trials), hierarchical child-fit admission checks, bounded "
+            "recovery, and an explainable autoscaling advisor. Across the 12 "
             "development trials, CP-2 completes 7, rejects 5 permanently infeasible, "
-            "and produces zero unresolved deadlocks — the key claim of the capstone."
+            "and produces zero unresolved deadlocks — the key claim of the capstone. "
+            "The separate mutual-cycle analysis found that a two-trial cross-cycle "
+            "is unreachable under this simulator's atomic parent+child placement model; "
+            "the adjacent collateral-blocking hazard is covered by the same admission guard."
         )
     else:
         summary = (
             "This CP-1 report documents the deterministic, bounded, reproducible "
             "evaluation framework for the Ray #47439 placement-group deadlock. "
-            "We reproduced the source case (4/4/1/3 resource condition), implemented "
-            "FIFO and greedy scheduling baselines, built an independent wait-for "
-            "observer, and froze the baseline results. Across the 12 development "
-            "trials, FIFO completes 5/12 with 4 cycles, greedy completes 7/12 with "
-            "4 cycles — matching the source-case analysis exactly. 34 automated "
-            "tests pass with 100% oracle agreement."
+            "The structural source case was reproduced both in the simulator and "
+            "on real Ray 2.10.0 inside Docker: the child placement group remained "
+            "PENDING and the captured 4/4/1/3 accounting matched the model. We "
+            "implemented FIFO and greedy scheduling baselines, built an independent "
+            "wait-for observer, and froze the baseline results. Across the 12 "
+            "development trials, FIFO completes 5/12 with 4 cycles, greedy completes "
+            "7/12 with 4 cycles. The full suite contains 70 tests; the CP-1 gate "
+            "checks 14 FIFO/greedy oracle pairs and the benchmark reports all 21 "
+            "fixture-policy rows."
         )
     doc.add_paragraph(summary)
 
@@ -769,11 +797,11 @@ def make_docx_report(output_path: Path, is_cp2: bool = False) -> None:
     r.font.size = Pt(10)
     doc.add_paragraph("This single command performs:")
     for step in [
-        "Fixture validation (all 9 fixtures)",
-        "34 automated pytest tests",
+        "Fixture validation (all 7 development + 2 acceptance fixtures)",
+        "70 automated pytest tests (34 frozen CP-1 baseline + 2 CP-2 acceptance + 34 integration/hardening tests)",
         "Partition-hash verification (canonical SHA-256)",
         "FIFO and greedy benchmarks across all 7 development fixtures",
-        "Independent expected-result oracle verification (21 (fixture, policy) pairs)",
+        "Independent expected-result oracle verification (14 FIFO/greedy CP-1 pairs; benchmark reports all 21 fixture-policy rows)",
         "Repeatability check (determinism — byte-identical across runs)",
     ]:
         doc.add_paragraph(step, style="List Bullet")
@@ -864,7 +892,7 @@ def make_docx_report(output_path: Path, is_cp2: bool = False) -> None:
     # ---- Testing ----
     doc.add_heading("7. Testing and validation", level=1)
     for line in [
-        "34/34 automated tests passed (Python pytest).",
+        "70/70 automated tests passed (Python pytest): 34 frozen CP-1 baseline tests plus 36 additive CP-2, API, advisor, and mutual-cycle analysis tests.",
         "100% agreement with the independent expected-result oracle.",
         "7 development fixtures evaluated under all 3 policies.",
         "Stable semantic digest across repeated executions (determinism).",
@@ -883,6 +911,9 @@ def make_docx_report(output_path: Path, is_cp2: bool = False) -> None:
         "Negative topology cases",
         "Deterministic execution (byte-identical runs)",
         "Evidence generation (JSON + CSV + chart PNG)",
+        "FastAPI endpoint smoke tests (health / scenarios / simulate / benchmark / validate)",
+        "Real-Ray 2.10.0 Docker reproduction (child PG PENDING; 4/4/1/3 accounting)",
+        "Mutual-cycle analysis (negative result under atomic simulator placement)",
     ]:
         doc.add_paragraph(area, style="List Bullet")
 
@@ -892,9 +923,13 @@ def make_docx_report(output_path: Path, is_cp2: bool = False) -> None:
     r = p.add_run(
         '"The deterministic simulator and evidence framework were executed and '
         'verified. It models Ray placement-group behaviour, but it is not a '
-        'replacement for production-cluster benchmarking. A Ray 2.10 Docker '
-        'reproduction protocol is provided separately, and live-Ray claims require '
-        'an attached runtime trace."'
+        'replacement for production-cluster benchmarking. The source topology was '
+        'also reproduced on real Ray 2.10.0 in Docker: the child placement group '
+        'remained PENDING for the full 91.8-second bounded wait, and real-Ray '
+        'resource accounting matched the simulator\'s 4/4/1/3 condition. This '
+        'validates the deadlock topology, not production performance or a multi-node '
+        'deployment. Evidence and exact steps are in '
+        'docs/RAY_REPRODUCTION_PROTOCOL.md."'
     )
     r.italic = True
     doc.add_paragraph(
@@ -916,15 +951,18 @@ def make_docx_report(output_path: Path, is_cp2: bool = False) -> None:
             "Priority pre-emption",
             "Node-failure retry",
             "Autoscaling advice",
-            "FastAPI/dashboard operation (visualization only)",
+            "FastAPI service/dashboard operation (CP-2 integration, not CP-1 baseline)",
             "KubeRay deployment validation",
         ]:
             doc.add_paragraph(item, style="List Bullet")
     else:
         doc.add_paragraph(
             "CP-2 implements the items reserved from CP-1: deadlock-aware admission, "
-            "hierarchical wait-for avoidance, bounded recovery, fairness, autoscaling "
-            "advice, FastAPI + dashboard, Docker/Kubernetes/KubeRay deployment."
+            "hierarchical child-fit admission checks, bounded recovery, fairness, "
+            "explainable autoscaling advice, a FastAPI service plus dashboard, and "
+            "Docker/Kubernetes/KubeRay deployment configurations. These deployment "
+            "artifacts are supplied and linted; production-cluster validation is not "
+            "claimed."
         )
 
     # ---- Closing ----
@@ -936,8 +974,10 @@ def make_docx_report(output_path: Path, is_cp2: bool = False) -> None:
             'admission controller that rejects permanently infeasible trials and '
             'defers admission for trials whose child placement cannot fit. Across '
             'the 12 development trials, CP-2 completes 7, rejects 5, and produces '
-            'zero unresolved deadlocks — the key capstone claim. The CP-1 baseline '
-            'is preserved unchanged for the CP-2 evaluation."'
+            'zero unresolved deadlocks — the key capstone claim. The CP-2 package also '
+            'includes the verified FastAPI service, advisory autoscaling output, '
+            'deployment configurations, and a real-Ray 2.10.0 reproduction protocol. '
+            'The CP-1 baseline is preserved unchanged for the CP-2 evaluation."'
         )
     else:
         closing = (
@@ -945,7 +985,9 @@ def make_docx_report(output_path: Path, is_cp2: bool = False) -> None:
             'bounded, repeatable and measurable experiment. We reproduced the exact '
             '4/4/1/3 source condition, detected the self-cycle independently, '
             'validated safe and negative controls, froze FIFO and greedy baselines, '
-            'and achieved 100% oracle agreement across 34 automated tests. CP-2 '
+            'and achieved 100% oracle agreement across the 70-test suite. The source '
+            'topology was additionally reproduced on real Ray 2.10.0 in Docker, '
+            'with the child PG PENDING and the 4/4/1/3 accounting captured. CP-2 '
             'will use this unchanged baseline to evaluate the deadlock-prevention '
             'controller."'
         )

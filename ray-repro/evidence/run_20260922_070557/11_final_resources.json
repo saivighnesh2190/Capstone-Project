@@ -1,0 +1,17 @@
+{
+  "cluster_total": {
+    "CPU": 4.0,
+    "memory": 1812639744.0,
+    "object_store_memory": 906319872.0
+  },
+  "available": {
+    "bundle_group_0_441fd889fa9f693bc9f3a5f2ab0701000000": 999.999,
+    "CPU_group_0_441fd889fa9f693bc9f3a5f2ab0701000000": 1.0,
+    "object_store_memory": 906319872.0,
+    "bundle_group_441fd889fa9f693bc9f3a5f2ab0701000000": 1999.998,
+    "CPU_group_1_441fd889fa9f693bc9f3a5f2ab0701000000": 2.0,
+    "CPU_group_441fd889fa9f693bc9f3a5f2ab0701000000": 3.0,
+    "memory": 1812639744.0,
+    "bundle_group_1_441fd889fa9f693bc9f3a5f2ab0701000000": 999.999
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "cluster_total_cpus": 4.0,
+  "reserved_by_parent_pg": 4.0,
+  "in_use_inside_parent": 1.0,
+  "stranded_inside_parent": 3.0,
+  "free_cpus_outside_pgs": 0.0,
+  "ray_status_usage_line": "1.0/4.0 CPU (1.0 used of 4.0 reserved in placement groups)",
+  "ray_status_demand_line": "{'CPU': 3.0} * 1 (PACK): 1+ pending placement groups",
+  "simulator_model": {
+    "total": 4,
+    "reserved": 4,
+    "in_use": 1,
+    "stranded": 3
+  },
+  "matches_simulator_4_4_1_3": true
+}

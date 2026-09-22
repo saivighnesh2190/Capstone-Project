@@ -17,6 +17,7 @@ from .. import __version__
 from ..simulator import simulate, get_policy
 from ..schema import WorkloadDefinition, validate_workload_file
 from ..oracle import EXPECTED_OUTCOMES, expected_for, all_fixtures, totals_for_policy
+from ..advisor import format_advice
 
 
 # Default fixture root (relative to project root).
@@ -182,6 +183,15 @@ def cmd_gate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_advise(args: argparse.Namespace) -> int:
+    """Run a simulation and print autoscaling advice."""
+    fixture_path = _fixture_path(args.fixture)
+    definition = validate_workload_file(fixture_path)
+    result = simulate(definition, args.policy)
+    print(format_advice(result))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="nestedtune_guard.cli",
@@ -211,6 +221,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_gate = sub.add_parser("gate", help="run the full CP-1 gate (validate + headline totals)")
     p_gate.set_defaults(func=cmd_gate)
+
+    p_adv = sub.add_parser("advise", help="print autoscaling advice for a fixture")
+    p_adv.add_argument("fixture", help="fixture path or fixture name")
+    p_adv.add_argument("--policy", default="deadlock_aware",
+                       choices=["fifo", "greedy", "deadlock_aware"],
+                       help="scheduling policy (default: deadlock_aware)")
+    p_adv.set_defaults(func=cmd_advise)
 
     return parser
 

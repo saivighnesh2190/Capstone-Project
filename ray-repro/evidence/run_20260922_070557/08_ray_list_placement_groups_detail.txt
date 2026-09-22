@@ -1,0 +1,49 @@
+---
+-   placement_group_id: 441fd889fa9f693bc9f3a5f2ab0701000000
+    name: parent_47439
+    creator_job_id: '01000000'
+    state: CREATED
+    bundles:
+    -   bundle_id:
+            placement_group_id: 441fd889fa9f693bc9f3a5f2ab0701000000
+            bundle_index: 0
+        unit_resources:
+            CPU: 1.0
+        node_id: 7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5
+    -   bundle_id:
+            placement_group_id: 441fd889fa9f693bc9f3a5f2ab0701000000
+            bundle_index: 1
+        unit_resources:
+            CPU: 3.0
+        node_id: 7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5
+    is_detached: false
+    stats:
+        creation_request_received_ns: '1790085967929577248'
+        scheduling_started_time_ns: '1790085967929657561'
+        scheduling_latency_us: '2697'
+        end_to_end_creation_latency_us: '2777'
+        scheduling_attempt: 1
+        scheduling_state: FINISHED
+        highest_retry_delay_ms: 0.0
+-   placement_group_id: 76e86fee138cce6589c11d06f80d01000000
+    name: child_47439
+    creator_job_id: '01000000'
+    state: PENDING
+    bundles:
+    -   bundle_id:
+            placement_group_id: 76e86fee138cce6589c11d06f80d01000000
+            bundle_index: 0
+        unit_resources:
+            CPU: 3.0
+        node_id: ''
+    is_detached: false
+    stats:
+        creation_request_received_ns: '1790085975452476507'
+        scheduling_started_time_ns: '1790086069504024499'
+        scheduling_attempt: 95
+        highest_retry_delay_ms: 1000.0
+        scheduling_state: NO_RESOURCES
+        scheduling_latency_us: '0'
+        end_to_end_creation_latency_us: '0'
+...
+

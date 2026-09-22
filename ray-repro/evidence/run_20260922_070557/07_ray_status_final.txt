@@ -1,0 +1,19 @@
+======== Autoscaler status: 2026-09-22 07:07:44.098564 ========
+Node status
+---------------------------------------------------------------
+Active:
+ 1 node_7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5
+Pending:
+ (no pending nodes)
+Recent failures:
+ (no failures)
+
+Resources
+---------------------------------------------------------------
+Usage:
+ 1.0/4.0 CPU (1.0 used of 4.0 reserved in placement groups)
+ 0B/1.69GiB memory
+ 0B/864.33MiB object_store_memory
+
+Demands:
+ {'CPU': 3.0} * 1 (PACK): 1+ pending placement groups

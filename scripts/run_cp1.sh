@@ -2,11 +2,11 @@
 # CP-1 gate runner — single-command demonstration script.
 #
 # Performs:
-#   1. Fixture validation (all 9 development + acceptance fixtures)
-#   2. 34 automated pytest tests across schema/placement/atomic/ordering/cycle/determinism/evidence
+#   1. Fixture validation (all 7 development + 2 acceptance fixtures)
+#   2. 70 automated pytest tests (34 frozen CP-1 baseline + 2 CP-2 acceptance + 34 integration/hardening)
 #   3. Partition-hash verification (canonical SHA-256 of every fixture)
 #   4. FIFO and greedy benchmarks across all 7 development fixtures
-#   5. Independent expected-result oracle verification (21 (fixture, policy) pairs)
+#   5. Independent expected-result oracle verification (14 CP-1 baseline pairs)
 #   6. Repeatability check (determinism — same input → same output, byte-identical)
 #
 # On success, prints: CP1 GATE PASS
@@ -59,7 +59,7 @@ for fixture in fixtures/development/*.json fixtures/acceptance/*.json; do
 done
 print_pass "All fixtures valid"
 
-# Step 2: 34 automated tests
+# Step 2: 70 automated tests
 print_step "2/6 Automated tests"
 if python3 -m pytest nestedtune_guard/tests/ -q --tb=short 2>&1 | tail -5; then
     print_pass "All pytest tests passed"
@@ -106,7 +106,7 @@ print()
 "
 
 # Step 5: Oracle agreement (validation)
-print_step "5/6 Oracle agreement (21 fixture × policy pairs)"
+print_step "5/6 Oracle agreement (14 CP-1 fixture × policy pairs)"
 if python3 -m nestedtune_guard.cli validate 2>&1 | tail -3; then
     print_pass "All (fixture, policy) pairs match oracle"
 else

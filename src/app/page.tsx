@@ -237,7 +237,7 @@ function HeroSection() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-primary">●</span>
-          <span>34 automated tests</span>
+          <span>70 automated tests</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-primary">●</span>
@@ -1025,7 +1025,7 @@ function ReviewGatesSection() {
     { id: "ordering", label: "FIFO + greedy ordering", passed: true, detail: "Head-of-line blocking + backfilling" },
     { id: "cycle", label: "Wait-for cycle detection", passed: true, detail: "DFS · self-cycles + mutual cycles" },
     { id: "determinism", label: "Deterministic execution", passed: true, detail: "Byte-identical across repeated runs" },
-    { id: "evidence", label: "Oracle agreement", passed: validateResult?.passed ?? false, detail: "21 (fixture, policy) pairs match" },
+    { id: "evidence", label: "Oracle agreement", passed: validateResult?.passed ?? false, detail: "14 CP-1 baseline pairs match" },
     { id: "headline", label: "Headline totals match chat spec", passed: validateResult?.passed ?? false, detail: "FIFO 5/12 · greedy 7/12 · 4 cycles each" },
     { id: "cp2", label: "CP-2 zero unresolved deadlocks", passed: validateResult?.passed ?? false, detail: "7 completed · 5 rejected · 0 unresolved" },
   ];
@@ -1157,7 +1157,7 @@ function DashboardFooter() {
         <div className="flex items-center gap-4">
           <span>FIFO 5/12 · Greedy 7/12 · 4 cycles</span>
           <Separator orientation="vertical" className="h-3" />
-          <span>Python · FastAPI · Next.js 16 · Docker · K8s/KubeRay</span>
+          <span>Python simulator · Next.js 16 API/dashboard · Docker · K8s/KubeRay</span>
         </div>
       </div>
     </footer>

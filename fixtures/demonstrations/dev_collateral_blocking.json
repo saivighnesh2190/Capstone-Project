@@ -1,0 +1,24 @@
+{
+  "name": "dev_collateral_blocking",
+  "description": "Collateral blocking — the real mutual-blocking hazard in this model. 8-CPU cluster. deadlocked-a is self-infeasible (parent 4 + child 5 = 9 > 8 max capacity): its parent PG admits (4 CPU fits), then its child can never be placed, so the trial sits in WAITING_CHILD holding 4 CPUs forever. feasible-b is feasible in isolation (parent 4 + child 4 = 8 <= 8), but its parent cannot be admitted while deadlocked-a's parent holds 4 of the 8 CPUs — and its child would need the other 4. Under FIFO and greedy BOTH trials end unresolved (greedy cannot skip a trial whose parent fits in free capacity); deadlock_aware rejects deadlocked-a at admission (combined demand exceeds max capacity) and feasible-b completes. This demonstrates why per-trial pre-admission feasibility protects not just the infeasible trial but also the feasible trials it would otherwise block.",
+  "cluster": {"cpu": 8, "gpu": 0, "memory": 16, "workers": 8, "strategy": "PACK"},
+  "bounded_horizon_s": 30,
+  "trials": [
+    {
+      "id": "deadlocked-a",
+      "arrival_time": 0.0,
+      "duration": 5.0,
+      "tags": ["collateral_demo", "nested", "xgb", "infeasible"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "PACK"},
+      "child": {"cpu": 5, "gpu": 0, "memory": 4, "workers": 5, "strategy": "PACK"}
+    },
+    {
+      "id": "feasible-b",
+      "arrival_time": 0.0,
+      "duration": 5.0,
+      "tags": ["collateral_demo", "nested", "xgb", "feasible"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "PACK"},
+      "child": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "PACK"}
+    }
+  ]
+}

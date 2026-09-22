@@ -1,4 +1,4 @@
-# syntax=d/docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.7
 # Multi-stage Dockerfile for NestedTune Guard.
 #
 # Stage 1 (python-builder): installs Python deps + the nestedtune_guard package
@@ -10,6 +10,7 @@
 
 ARG PYTHON_VERSION=3.11
 ARG NODE_VERSION=20
+ARG BUN_VERSION=1.3.9
 
 # ----------------------------------------------------------------------------
 # Stage 1: Python builder
@@ -39,20 +40,20 @@ RUN PYTHONPATH=/app python3 -m nestedtune_guard.cli gate
 # ----------------------------------------------------------------------------
 # Stage 2: Node builder
 # ----------------------------------------------------------------------------
-FROM node:${NODE_VERSION}-slim AS node-builder
+FROM oven/bun:${BUN_VERSION}-slim AS node-builder
 
 WORKDIR /app
 
 # Copy package manifests first for better layer caching.
 COPY package.json bun.lock ./
-# Install dependencies. We use npm here because the official Node image
-# doesn't include bun; CI can override to bun if available.
-RUN npm install --no-audit --no-fund
+COPY prisma ./prisma
+# Install the exact dependency graph captured by the repository lockfile.
+RUN bun install --frozen-lockfile
 
 # Copy the rest of the source and build for production.
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN bun run build
 
 # ----------------------------------------------------------------------------
 # Stage 3: Runtime
@@ -70,6 +71,7 @@ WORKDIR /app
 # Copy built Next.js artifacts
 COPY --from=node-builder /app/.next ./.next
 COPY --from=node-builder /app/public ./public
+COPY --from=node-builder /app/download ./download
 COPY --from=node-builder /app/package.json ./package.json
 COPY --from=node-builder /app/node_modules ./node_modules
 COPY --from=node-builder /app/next.config.ts ./

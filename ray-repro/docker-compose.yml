@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  ray-repro:
+    build:
+      context: ..
+      dockerfile: ray-repro/Dockerfile
+    container_name: ray47439-repro
+    mem_limit: 3g
+    volumes:
+      - ./evidence:/app/evidence
+    environment:
+      # Ray 2.10.0's `colorful` import chain calls sys.stdout.isatty(); the
+      # repro script tees stdout into the evidence transcript, so force
+      # colorful off at the source. TERM=dumb is belt-and-braces.
+      - COLORFUL_DISABLE=1
+      - TERM=dumb
+    # NOTE: do NOT set RAY_ADDRESS here — ray.init(num_cpus=4) must start a
+    # fresh local cluster; RAY_ADDRESS=localhost:6379 makes ray.init try to
+    # CONNECT to a non-existent cluster and fail with
+    # "When connecting to an existing cluster, num_cpus ... must not be provided."
+    restart: "no"

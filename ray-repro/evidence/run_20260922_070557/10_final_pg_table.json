@@ -1,0 +1,41 @@
+[
+  {
+    "pg_id": "76e86fee138cce6589c11d06f80d01000000",
+    "name": "child_47439",
+    "state": "PENDING",
+    "bundles": {
+      "0": {
+        "CPU": 3.0
+      }
+    },
+    "strategy": "PACK",
+    "stats": {
+      "end_to_end_creation_latency_ms": 0.0,
+      "scheduling_latency_ms": 0.0,
+      "scheduling_attempt": 97,
+      "highest_retry_delay_ms": 1000.0,
+      "scheduling_state": "NO_RESOURCES"
+    }
+  },
+  {
+    "pg_id": "441fd889fa9f693bc9f3a5f2ab0701000000",
+    "name": "parent_47439",
+    "state": "CREATED",
+    "bundles": {
+      "0": {
+        "CPU": 1.0
+      },
+      "1": {
+        "CPU": 3.0
+      }
+    },
+    "strategy": "PACK",
+    "stats": {
+      "end_to_end_creation_latency_ms": 2.777,
+      "scheduling_latency_ms": 2.697,
+      "scheduling_attempt": 1,
+      "highest_retry_delay_ms": 0.0,
+      "scheduling_state": "FINISHED"
+    }
+  }
+]

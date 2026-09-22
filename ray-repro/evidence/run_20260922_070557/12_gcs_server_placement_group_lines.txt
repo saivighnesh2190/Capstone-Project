@@ -1,0 +1,22 @@
+[2026-09-22 07:05:57,488 I 9 9] (gcs_server) gcs_init_data.cc:66: Loading placement group table data.
+[2026-09-22 07:05:57,489 I 9 9] (gcs_server) gcs_init_data.cc:71: Finished loading placement group table data, size = 0
+- Scheduling pending placement group count: 0
+- Registered placement groups count: 0
+- Named placement group count: 0
+- Pending placement groups count: 0
+- Infeasible placement groups count: 0
+[2026-09-22 07:06:00,592 I 9 9] (gcs_server) gcs_placement_group_manager.cc:797: A new node: 7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5 registered, will try to reschedule all the infeasible placement groups.
+[2026-09-22 07:06:07,929 I 9 9] (gcs_server) gcs_placement_group_manager.cc:432: Registering placement group, placement group id = 441fd889fa9f693bc9f3a5f2ab0701000000, name = parent_47439, strategy = 0
+[2026-09-22 07:06:07,929 I 9 9] (gcs_server) gcs_placement_group_manager.cc:436: Finished registering placement group, placement group id = 441fd889fa9f693bc9f3a5f2ab0701000000, name = parent_47439, strategy = 0
+[2026-09-22 07:06:07,930 I 9 9] (gcs_server) gcs_placement_group_scheduler.cc:185: Preparing resource from node 7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5 for bundles: {placement group id={441fd889fa9f693bc9f3a5f2ab0701000000}, bundle index={0}},{placement group id={441fd889fa9f693bc9f3a5f2ab0701000000}, bundle index={1}},
+[2026-09-22 07:06:07,930 I 9 9] (gcs_server) gcs_placement_group_scheduler.cc:195: Finished leasing resource from 7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5 for bundles: {placement group id={441fd889fa9f693bc9f3a5f2ab0701000000}, bundle index={0}},{placement group id={441fd889fa9f693bc9f3a5f2ab0701000000}, bundle index={1}},
+[2026-09-22 07:06:07,931 I 9 9] (gcs_server) gcs_placement_group_scheduler.cc:213: Committing resource to a node 7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5 for bundles: {placement group id={441fd889fa9f693bc9f3a5f2ab0701000000}, bundle index={1}},{placement group id={441fd889fa9f693bc9f3a5f2ab0701000000}, bundle index={0}},
+[2026-09-22 07:06:07,932 I 9 9] (gcs_server) gcs_placement_group_scheduler.cc:220: Finished committing resource to 7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5 for bundles: {placement group id={441fd889fa9f693bc9f3a5f2ab0701000000}, bundle index={1}},{placement group id={441fd889fa9f693bc9f3a5f2ab0701000000}, bundle index={0}},
+[2026-09-22 07:06:07,932 I 9 9] (gcs_server) gcs_placement_group_manager.cc:321: Successfully created placement group parent_47439, id: 441fd889fa9f693bc9f3a5f2ab0701000000
+[2026-09-22 07:06:15,452 I 9 9] (gcs_server) gcs_placement_group_manager.cc:432: Registering placement group, placement group id = 76e86fee138cce6589c11d06f80d01000000, name = child_47439, strategy = 0
+[2026-09-22 07:06:15,452 I 9 9] (gcs_server) gcs_placement_group_manager.cc:436: Finished registering placement group, placement group id = 76e86fee138cce6589c11d06f80d01000000, name = child_47439, strategy = 0
+- Scheduling pending placement group count: 88
+- Registered placement groups count: 2
+- Named placement group count: 2
+- Pending placement groups count: 1
+- Infeasible placement groups count: 0

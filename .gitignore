@@ -12,6 +12,11 @@ node_modules
 
 # testing
 /coverage
+/tmp/
+
+# python
+__pycache__/
+*.py[cod]
 
 # next.js
 /.next/
@@ -32,6 +37,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# generated Python packaging metadata
+*.egg-info/
 
 # vercel
 .vercel

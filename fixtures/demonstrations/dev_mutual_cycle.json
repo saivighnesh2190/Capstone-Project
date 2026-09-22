@@ -1,0 +1,24 @@
+{
+  "name": "dev_mutual_cycle",
+  "description": "Mutual-cycle demonstration (honest negative result). DESIGN TARGET: 8-CPU cluster, two concurrent trials each requesting a 4-CPU parent PG and a 4-CPU child PG — a textbook mutual wait-for cycle A waits-for B, B waits-for A. EMPIRICAL FINDING: in this simulator parent admission and child placement are atomic within one tick, so a true two-trial mutual cycle CANNOT form. Both trials complete under all three policies (verified empirically). The closely-related real hazard is collateral blocking, demonstrated by the companion fixture dev_collateral_blocking: a self-infeasible nested trial (parent 4 + child 5 = 9 > 8 max capacity) is admitted by the hierarchy-blind baselines and its stuck parent PG blocks a feasible trial's parent, hanging BOTH under FIFO and greedy; deadlock_aware rejects the infeasible trial at admission and the feasible one completes. See docs/CP2_MUTUAL_CYCLE.md for the full analysis.",
+  "cluster": {"cpu": 8, "gpu": 0, "memory": 16, "workers": 8, "strategy": "PACK"},
+  "bounded_horizon_s": 30,
+  "trials": [
+    {
+      "id": "trial-a",
+      "arrival_time": 0.0,
+      "duration": 5.0,
+      "tags": ["mutual_cycle_demo", "nested", "xgb"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "PACK"},
+      "child": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "PACK"}
+    },
+    {
+      "id": "trial-b",
+      "arrival_time": 0.0,
+      "duration": 5.0,
+      "tags": ["mutual_cycle_demo", "nested", "xgb"],
+      "parent": {"cpu": 4, "gpu": 0, "memory": 8, "workers": 4, "strategy": "PACK"},
+      "child": {"cpu": 4, "gpu": 0, "memory": 4, "workers": 4, "strategy": "PACK"}
+    }
+  ]
+}

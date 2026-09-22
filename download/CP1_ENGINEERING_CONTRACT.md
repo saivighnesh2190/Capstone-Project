@@ -123,9 +123,10 @@ The oracle is a hand-coded table of expected results located at
 the source-case analysis BEFORE the simulator was implemented, so any
 mismatch indicates a bug in one of them.
 
-Validation runs every (fixture, policy) pair through the simulator and
-compares against the oracle. 100% agreement is required for the gate to
-pass.
+The benchmark covers all 21 development (fixture, policy) rows. The gate's
+independent CP-1 oracle validation checks the 14 FIFO/greedy pairs and requires
+100% agreement; the deadlock-aware rows are also compared in the benchmark
+output.
 
 ---
 
@@ -185,8 +186,11 @@ verifies that calling `observe()` does not change trial states.
 
 This single command performs:
 
-1. Fixture validation (all 9 fixtures)
-2. 34 automated pytest tests
+1. Fixture validation (all 7 development + 2 acceptance fixtures)
+2. 70 automated pytest tests are executed by the current gate: the original
+   34 CP-1 baseline tests remain unchanged, with 2 CP-2 acceptance tests and
+   34 additive integration/hardening tests. The frozen CP-1 acceptance subset
+   is still the original 34 tests.
 3. Partition-hash verification (canonical SHA-256 of every fixture)
 4. FIFO and greedy benchmarks across all 7 development fixtures
 5. Independent expected-result oracle verification (14 (fixture, policy) pairs for CP-1)
@@ -222,8 +226,7 @@ The following are NOT part of CP-1:
 - Priority pre-emption
 - Node-failure retry
 - Autoscaling advice
-- FastAPI/dashboard operation (the dashboard exists for visualization
-  but does not modify scheduling)
+- FastAPI service/dashboard operation (CP-2 integration, not CP-1 baseline)
 - KubeRay deployment validation
 
 These are listed here so reviewers can verify they are not accidentally

@@ -1,0 +1,58 @@
+{
+  "ray_version": "2.10.0",
+  "reproduces": true,
+  "cluster_cpus": 4,
+  "parent_pg": {
+    "name": "parent_47439",
+    "strategy": "PACK",
+    "bundles": [
+      {
+        "CPU": 1
+      },
+      {
+        "CPU": 3
+      }
+    ],
+    "state": "CREATED"
+  },
+  "child_pg": {
+    "name": "child_47439",
+    "requested": {
+      "CPU": 3
+    },
+    "state": "PENDING",
+    "ever_pending": true
+  },
+  "accounting": {
+    "total": 4.0,
+    "reserved": 4.0,
+    "in_use": 1.0,
+    "stranded": 3.0,
+    "free_outside_pgs": 0.0,
+    "matches_simulator_4_4_1_3": true
+  },
+  "usage_line": "1.0/4.0 CPU (1.0 used of 4.0 reserved in placement groups)",
+  "demand_line": "{'CPU': 3.0} * 1 (PACK): 1+ pending placement groups",
+  "wait_time_seconds": 91.8,
+  "polls": 30,
+  "evidence_dir": "/app/evidence/run_20260922_070557",
+  "evidence_files": [
+    "00_console_transcript.txt",
+    "00_environment.json",
+    "01_ray_status_initial.txt",
+    "02_resources_initial.json",
+    "03_parent_pg_entry.json",
+    "04_ray_status_after_parent.txt",
+    "05_resources_after_parent.json",
+    "06_ray_status_midwait.txt",
+    "07_ray_status_final.txt",
+    "08_ray_list_placement_groups_detail.txt",
+    "09_ray_list_actors_detail.txt",
+    "10_final_pg_table.json",
+    "11_final_resources.json",
+    "12_gcs_server_placement_group_lines.txt",
+    "13_raylet_out_tail.txt",
+    "14_resource_accounting.json",
+    "15_simulator_mapping.json"
+  ]
+}

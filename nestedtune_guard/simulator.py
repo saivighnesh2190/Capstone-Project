@@ -36,6 +36,7 @@ from .telemetry import TelemetrySample, summarize, Summary
 
 
 TICK_S = 0.1  # 100 ms deterministic tick
+NODE_LOSS_AFTER_S = 1.0
 
 
 @dataclass
@@ -53,6 +54,7 @@ class SimulationResult:
     cluster_snapshot: dict                # final cluster state
 
     def to_dict(self) -> dict:
+        from .advisor import build_advice
         return {
             "fixture": self.fixture,
             "policy": self.policy,
@@ -63,6 +65,7 @@ class SimulationResult:
             "wait_for_history": [w.to_dict() for w in self.wait_for_history],
             "summary": self.summary.to_dict(),
             "cluster_snapshot": self.cluster_snapshot,
+            "autoscaling_advice": build_advice(self),
         }
 
     def to_json(self, indent: int = 2) -> str:
@@ -106,6 +109,10 @@ def simulate(workload_def: WorkloadDefinition, policy_name: str) -> SimulationRe
     # The "running" set in policy context = trials that have parent PG
     # admitted but may or may not have started the actual workload.
     running: list[Trial] = []
+    arrived_trial_ids: set[str] = set()
+    injected_node_losses: set[str] = set()
+    retry_counts: dict[str, int] = {}
+    preempted_trial_ids: set[str] = set()
 
     t = 0.0
     tick_idx = 0
@@ -133,6 +140,7 @@ def simulate(workload_def: WorkloadDefinition, policy_name: str) -> SimulationRe
                 and trial.state == TrialState.PENDING
                 and trial not in running
                 and trial.admitted_at is None
+                and trial.id not in arrived_trial_ids
             ):
                 # Trial has arrived and is waiting to be admitted.
                 # It stays in PENDING; the policy will pick it up.
@@ -141,8 +149,50 @@ def simulate(workload_def: WorkloadDefinition, policy_name: str) -> SimulationRe
                     "type": "trial_arrived",
                     "trial_id": trial.id,
                 })
+                arrived_trial_ids.add(trial.id)
 
-        # 3. Check for trials whose nested child has become feasible.
+        # 3. Apply CP-2 priority handoff before making a new admission.
+        if policy.name == "deadlock_aware":
+            high_priority = next(
+                (
+                    trial
+                    for trial in workload.trials_in_arrival_order
+                    if trial.state == TrialState.PENDING
+                    and trial.schema.arrival_time <= t + 1e-9
+                    and {"priority", "high"}.issubset(trial.tags)
+                ),
+                None,
+            )
+            low_priority = next(
+                (
+                    trial
+                    for trial in running
+                    if trial.state == TrialState.RUNNING
+                    and {"priority", "low"}.issubset(trial.tags)
+                    and trial.id not in preempted_trial_ids
+                ),
+                None,
+            )
+            if high_priority is not None and low_priority is not None:
+                if low_priority.child_pg is not None and low_priority.child_pg.ready:
+                    cluster.release(low_priority.child_pg.bundle)
+                    low_priority.child_pg = None
+                if low_priority.parent_pg is not None:
+                    cluster.release(low_priority.parent_pg.bundle)
+                    low_priority.parent_pg = None
+                running.remove(low_priority)
+                low_priority.state = TrialState.PENDING
+                low_priority.admitted_at = None
+                low_priority.started_at = None
+                preempted_trial_ids.add(low_priority.id)
+                events.append({
+                    "t": round(t, 4),
+                    "type": "trial_preempted",
+                    "trial_id": low_priority.id,
+                    "preempted_by": high_priority.id,
+                })
+
+        # 4. Check for trials whose nested child has become feasible.
         # A WAITING_CHILD trial whose child now fits transitions to RUNNING.
         for trial in list(running):
             if trial.state != TrialState.WAITING_CHILD:
@@ -160,7 +210,56 @@ def simulate(workload_def: WorkloadDefinition, policy_name: str) -> SimulationRe
                     "started_at": t,
                 })
 
-        # 4. Check for trials that have completed.
+        # 5. Inject the deterministic node-loss acceptance event. Baseline
+        # policies fail the trial; CP-2 releases, requeues, and retries once.
+        for trial in list(running):
+            if (
+                trial.state != TrialState.RUNNING
+                or "node_loss" not in trial.tags
+                or trial.id in injected_node_losses
+                or trial.started_at is None
+                or t < trial.started_at + NODE_LOSS_AFTER_S - 1e-9
+            ):
+                continue
+
+            if trial.child_pg is not None and trial.child_pg.ready:
+                cluster.release(trial.child_pg.bundle)
+                trial.child_pg = None
+            if trial.parent_pg is not None:
+                cluster.release(trial.parent_pg.bundle)
+                trial.parent_pg = None
+            running.remove(trial)
+            injected_node_losses.add(trial.id)
+            events.append({
+                "t": round(t, 4),
+                "type": "node_lost",
+                "trial_id": trial.id,
+            })
+
+            if policy.name == "deadlock_aware" and retry_counts.get(trial.id, 0) < 1:
+                retry_counts[trial.id] = retry_counts.get(trial.id, 0) + 1
+                trial.state = TrialState.PENDING
+                trial.admitted_at = None
+                trial.started_at = None
+                events.append({
+                    "t": round(t, 4),
+                    "type": "trial_requeued",
+                    "trial_id": trial.id,
+                    "retry": retry_counts[trial.id],
+                    "reason": "node_loss",
+                })
+            else:
+                trial.state = TrialState.FAILED
+                trial.finished_at = t
+                policy.on_trial_finished(trial, t)
+                events.append({
+                    "t": round(t, 4),
+                    "type": "trial_failed",
+                    "trial_id": trial.id,
+                    "reason": "node_loss",
+                })
+
+        # 6. Check for trials that have completed.
         for trial in list(running):
             if trial.state != TrialState.RUNNING:
                 continue

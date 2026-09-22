@@ -33,7 +33,10 @@ jobs:
       - name: Install pytest
         run: pip install pytest
 
-      - name: Run 34 automated tests
+      - name: Install package + API deps
+        run: pip install -e '.[dev]'
+
+      - name: Run 70 automated tests
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: python3 -m pytest nestedtune_guard/tests/ -v --tb=short

@@ -1,0 +1,12 @@
+{
+  "cluster_total": {
+    "CPU": 4.0,
+    "object_store_memory": 906319872.0,
+    "memory": 1812639744.0
+  },
+  "available": {
+    "CPU": 4.0,
+    "memory": 1812639744.0,
+    "object_store_memory": 906319872.0
+  }
+}

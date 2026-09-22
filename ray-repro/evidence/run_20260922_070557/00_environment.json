@@ -1,0 +1,8 @@
+{
+  "ray_version": "2.10.0",
+  "python": "3.9.18",
+  "hostname": "ad667c251527",
+  "kernel": "6.12.108-1-MANJARO",
+  "dev_shm_bytes": 67108864,
+  "dev_shm_note": "Docker default /dev/shm is 64MB, so Ray logs 'object store is using /tmp instead of /dev/shm'. Harmless for this scheduling reproduction (no large objects are transferred)."
+}

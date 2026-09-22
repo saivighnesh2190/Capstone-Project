@@ -57,8 +57,16 @@ class DeadlockAwarePolicy(Policy):
             return PolicyDecision(trial_id=None, admitted=False, reason="queue_empty")
 
         trace: list[str] = []
+        ordered_queue = sorted(
+            queue,
+            key=lambda trial: (
+                0 if {"priority", "high"}.issubset(trial.tags) else 1,
+                trial.schema.arrival_time,
+                trial.id,
+            ),
+        )
         # Walk the queue; admit the first trial that is feasible.
-        for trial in queue:
+        for trial in ordered_queue:
             parent_bundle = _bundle_from_trial(trial, role="parent")
 
             # (1) Pre-admission feasibility: if the parent itself doesn't

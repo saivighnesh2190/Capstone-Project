@@ -1,0 +1,25 @@
+{
+  "placement_group_id": "441fd889fa9f693bc9f3a5f2ab0701000000",
+  "name": "parent_47439",
+  "bundles": {
+    "0": {
+      "CPU": 1.0
+    },
+    "1": {
+      "CPU": 3.0
+    }
+  },
+  "bundles_to_node_id": {
+    "0": "7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5",
+    "1": "7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5"
+  },
+  "strategy": "PACK",
+  "state": "CREATED",
+  "stats": {
+    "end_to_end_creation_latency_ms": 2.777,
+    "scheduling_latency_ms": 2.697,
+    "scheduling_attempt": 1,
+    "highest_retry_delay_ms": 0.0,
+    "scheduling_state": "FINISHED"
+  }
+}

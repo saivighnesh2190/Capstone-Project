@@ -111,7 +111,7 @@ CP-1 report and to a live artifact the reviewer can verify.
 
 ## G. Testing and validation
 
-- [ ] G1. 34 automated tests pass (Python pytest).
+- [ ] G1. 70 automated tests pass (Python pytest): 34 frozen CP-1 baseline tests plus 36 additive CP-2, API, advisor, and mutual-cycle analysis tests.
 - [ ] G2. 100% agreement with the independent expected-result oracle.
 - [ ] G3. 7 development fixtures evaluated under both baseline policies.
 - [ ] G4. Stable semantic digest across repeated executions (determinism).
@@ -122,7 +122,7 @@ CP-1 report and to a live artifact the reviewer can verify.
 ## H. Limitations (stated honestly)
 
 - [ ] H1. The reviewer can articulate:
-  - "The deterministic simulator and evidence framework were executed and verified. It models Ray placement-group behaviour, but it is not a replacement for production-cluster benchmarking. A Ray 2.10 Docker reproduction protocol is provided separately, and live-Ray claims require an attached runtime trace."
+  - "The deterministic simulator and evidence framework were executed and verified. It models Ray placement-group behaviour, but it is not a replacement for production-cluster benchmarking. The source topology was also reproduced on real Ray 2.10.0 in Docker: the child placement group remained PENDING for the full 91.8-second bounded wait, and real-Ray resource accounting matched the simulator's 4/4/1/3 condition. This validates the deadlock topology, not production performance or a multi-node deployment. Evidence and exact steps are in docs/RAY_REPRODUCTION_PROTOCOL.md."
 
 ## I. Out-of-scope (CP-2 reserved)
 
@@ -133,7 +133,7 @@ CP-1 report and to a live artifact the reviewer can verify.
   - Priority pre-emption
   - Node-failure retry
   - Autoscaling advice
-  - FastAPI/dashboard operation (visualization only)
+  - FastAPI service/dashboard operation (CP-2 integration, not CP-1 baseline)
   - KubeRay deployment
 
 ## J. Files carried
@@ -146,6 +146,9 @@ CP-1 report and to a live artifact the reviewer can verify.
 - [ ] J6. Generated CSV/JSON evidence (`evidence/`)
 - [ ] J7. Terminal screenshot showing `CP1 GATE PASS`
 - [ ] J8. Local copy of the chart and report in case internet access fails
+- [ ] J9. Real-Ray reproduction protocol (`docs/RAY_REPRODUCTION_PROTOCOL.md`)
+- [ ] J10. Real-Ray evidence (`ray-repro/evidence/run_20260922_070557/`)
+- [ ] J11. CP-2 mutual-cycle analysis (`docs/CP2_MUTUAL_CYCLE.md`) and demonstration fixtures
 
 ## K. Personalization (before submission)
 
@@ -162,11 +165,11 @@ The reviewer can confirm the closing claim is supported:
 
 > "CP-1 successfully converts an indefinite Ray scheduler hang into a
 > bounded, repeatable and measurable experiment. We reproduced the exact
-> 4/4/1/3 source condition, detected the self-cycle independently,
-> validated safe and negative controls, froze FIFO and greedy baselines,
-> and achieved 100% oracle agreement across 34 automated tests. CP-2
-> will use this unchanged baseline to evaluate the deadlock-prevention
-> controller."
+> 4/4/1/3 source condition in the simulator and on real Ray 2.10.0 in Docker,
+> detected the self-cycle independently, validated safe and negative controls,
+> froze FIFO and greedy baselines, and achieved 100% oracle agreement across
+> the 70-test suite. CP-2 uses this unchanged baseline to evaluate the
+> deadlock-prevention controller."
 
 ---
 

@@ -1,0 +1,19 @@
+---
+-   actor_id: 147f65a72dd00780b8a01d1f01000000
+    class_name: TrialDriver
+    state: ALIVE
+    job_id: '01000000'
+    name: ''
+    node_id: 7035da038f396cfe28c482a7ec32fd30578d1c7e7c899eb9dc206ad5
+    pid: 525
+    ray_namespace: b51ad2e1-84db-4241-8010-94c235b2d32f
+    serialized_runtime_env: '{}'
+    required_resources:
+        bundle_group_0_441fd889fa9f693bc9f3a5f2ab0701000000: 0.001
+        bundle_group_441fd889fa9f693bc9f3a5f2ab0701000000: 0.001
+    death_cause: null
+    is_detached: false
+    placement_group_id: 441fd889fa9f693bc9f3a5f2ab0701000000
+    repr_name: ''
+...
+

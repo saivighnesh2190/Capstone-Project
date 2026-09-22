@@ -1,0 +1,12 @@
+.git
+.next
+.venv
+node_modules
+tmp
+.extraction
+tool-results
+__pycache__
+*.py[cod]
+*.log
+.env*
+coverage

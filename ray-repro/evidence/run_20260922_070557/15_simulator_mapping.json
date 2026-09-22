@@ -1,0 +1,29 @@
+{
+  "reproduces": true,
+  "observed_real_ray": {
+    "child_pg_state": "PENDING",
+    "child_pg_ever_pending": true,
+    "wait_seconds": 91.8,
+    "parent_pg_state": "CREATED",
+    "gcs_created_parent_pg": true,
+    "gcs_created_child_pg": false,
+    "accounting": {
+      "total": 4.0,
+      "reserved": 4.0,
+      "in_use": 1.0,
+      "stranded": 3.0
+    },
+    "ray_status_usage_line": "1.0/4.0 CPU (1.0 used of 4.0 reserved in placement groups)",
+    "ray_status_demand_line": "{'CPU': 3.0} * 1 (PACK): 1+ pending placement groups"
+  },
+  "simulator_model": {
+    "state": "WAITING_CHILD",
+    "accounting": "4/4/1/3  (total / reserved / in-use / stranded)",
+    "wait_for_graph_self_cycle": "xgb-001 -> xgb-001"
+  },
+  "mapping": {
+    "WAITING_CHILD <- child PG stuck PENDING": "child_47439 stays PENDING for the whole bounded wait; ray list placement-groups --detail shows scheduling_state NO_RESOURCES with scheduling_attempt climbing (endless retries)",
+    "4/4/1/3 <- ray status usage line": "'1.0/4.0 CPU (1.0 used of 4.0 reserved in placement groups)': 4 total, 4 reserved by the parent PG, 1 in use by the trial workload, 3 stranded inside the parent reservation",
+    "xgb-001 -> xgb-001 <- self-defeating nested request": "the nested child-PG request waits on CPUs reserved by its own trial's parent PG (both PGs share creator_job_id 01000000); no other job holds resources, so the wait-for graph is a self-cycle \u2014 exactly the simulator's WAITING_CHILD self-cycle"
+  }
+}
