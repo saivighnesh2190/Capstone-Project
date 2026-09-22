@@ -610,9 +610,14 @@ function InteractiveScenarioSection() {
     }
   }, [fixture, policy]);
 
-  // Auto-run on first load
+  // Auto-run on first load. Defer the network-triggered state updates until
+  // after the effect has returned; the React hooks lint rule treats a direct
+  // call here as a synchronous cascading update.
   useEffect(() => {
-    runSimulation();
+    const timer = window.setTimeout(() => {
+      void runSimulation();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [runSimulation]);
 
   return (
