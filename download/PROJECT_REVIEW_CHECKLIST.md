@@ -127,7 +127,7 @@ CP-1 report and to a live artifact the reviewer can verify.
 ## I. Out-of-scope (CP-2 reserved)
 
 - [ ] I1. The reviewer confirms the following are NOT claimed as CP-1 results:
-  - Deadlock-aware policy result of 7/12 completed (CP-2 preview only)
+  - Deadlock-aware policy result of 7/12 completed (CP-2 comparison only)
   - Placement-group reuse
   - Explained rejection of impossible requests
   - Priority pre-emption

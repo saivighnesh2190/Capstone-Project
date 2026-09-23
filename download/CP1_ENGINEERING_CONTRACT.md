@@ -102,7 +102,7 @@ Any drift indicates a regression.
 | Queue p95 | 10.0 s | 9.6 s |
 | Jain fairness | 0.714 | 0.810 |
 
-### CP-2 preview (also locked for comparison)
+### CP-2 comparison (also locked for comparison)
 
 | Metric | Deadlock-aware |
 |---|---:|
@@ -219,7 +219,7 @@ and must NEVER change without an explicit contract amendment.
 
 The following are NOT part of CP-1:
 
-- Deadlock-aware policy results (the CP-2 preview row above is for
+- Deadlock-aware policy results (the CP-2 comparison row above is for
   comparison only and is not part of the CP-1 baseline).
 - Placement-group reuse
 - Explained rejection of impossible requests (CP-2 admission does this)
