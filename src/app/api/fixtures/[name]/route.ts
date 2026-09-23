@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { CP2_STATIC, isStaticEvidence } from "@/lib/cp2-static";
 
 const PROJECT_ROOT = path.resolve(process.cwd());
 
@@ -15,6 +16,20 @@ export async function GET(
         { ok: false, error: "invalid fixture name" },
         { status: 400 }
       );
+    }
+    if (isStaticEvidence()) {
+      const scenario = CP2_STATIC.scenarios.find((item) => item.name === name);
+      if (!scenario) {
+        return NextResponse.json(
+          { ok: false, error: `fixture ${name} not found` },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({
+        ok: true,
+        fixture: { ...scenario, evidence_only: true },
+        source: "cp2-static-evidence",
+      });
     }
     // Try development first, then acceptance
     const candidates = [

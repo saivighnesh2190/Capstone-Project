@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
+import { staticSimulation, isStaticEvidence } from "@/lib/cp2-static";
 
 const execFileAsync = promisify(execFile);
 const PROJECT_ROOT = path.resolve(process.cwd());
@@ -24,6 +25,22 @@ export async function POST(request: NextRequest) {
         { error: `Unknown policy: ${policy}` },
         { status: 400 }
       );
+    }
+
+    if (isStaticEvidence()) {
+      const result = staticSimulation(fixture, policy);
+      if (!result) {
+        return NextResponse.json(
+          { ok: false, error: `Unknown CP-2 evidence fixture: ${fixture}` },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({
+        ok: true,
+        result,
+        source: "cp2-static-evidence",
+        evidence_note: "This Vercel deployment serves deterministic CP-2 evidence generated locally by the Python simulator; Vercel does not run the Python process.",
+      });
     }
 
     const args = [

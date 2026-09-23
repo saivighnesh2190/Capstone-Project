@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
+import { CP2_STATIC, isStaticEvidence } from "@/lib/cp2-static";
 
 const execFileAsync = promisify(execFile);
 const PROJECT_ROOT = path.resolve(process.cwd());
@@ -12,6 +13,15 @@ const CACHE_TTL_MS = 60_000;
 
 export async function GET() {
   try {
+    if (isStaticEvidence()) {
+      return NextResponse.json({
+        ok: true,
+        result: CP2_STATIC.benchmark,
+        cached: true,
+        source: "cp2-static-evidence",
+      });
+    }
+
     if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
       return NextResponse.json({ ok: true, result: cached.data, cached: true });
     }

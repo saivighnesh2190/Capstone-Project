@@ -22,10 +22,10 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "NestedTune Guard — CINT-11",
   description:
-    "Deadlock-Aware Distributed Hyperparameter Tuning for Nested Trainers. " +
+    "CP-2 deadlock-aware admission for distributed hyperparameter tuning with nested trainers. " +
     "A deterministic, bounded, reproducible evaluation framework for the Ray #47439 " +
-    "placement-group deadlock, with FIFO and greedy baselines (CP-1) plus a " +
-    "deadlock-aware admission controller (CP-2).",
+    "placement-group deadlock; FIFO and greedy are frozen CP-1 controls, while CP-2 " +
+    "adds child-fit admission checks, infeasibility rejection, and bounded recovery.",
   keywords: [
     "Ray", "Ray Tune", "Ray Train", "placement group", "deadlock",
     "distributed training", "XGBoost", "hyperparameter tuning", "CINT-11",

@@ -3,12 +3,23 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { CP2_STATIC, isStaticEvidence } from "@/lib/cp2-static";
 
 const execFileAsync = promisify(execFile);
 const PROJECT_ROOT = path.resolve(process.cwd());
 
 export async function GET() {
   try {
+    if (isStaticEvidence()) {
+      const scenarios = CP2_STATIC.scenarios;
+      return NextResponse.json({
+        ok: true,
+        development: scenarios.filter((s) => String(s.name).startsWith("dev_")),
+        acceptance: scenarios.filter((s) => String(s.name).startsWith("acc_")),
+        source: "cp2-static-evidence",
+      });
+    }
+
     // List fixture files from the filesystem (fast — no Python needed).
     const devDir = path.join(PROJECT_ROOT, "fixtures", "development");
     const accDir = path.join(PROJECT_ROOT, "fixtures", "acceptance");
