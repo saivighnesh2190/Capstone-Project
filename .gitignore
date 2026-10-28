@@ -42,6 +42,13 @@ yarn-error.log*
 # local extraction/scratch exports
 /.extraction/
 
+# agent scratch output — never source
+/tool-results/
+
+# local runtime state
+db/*.db
+*.pid
+
 # generated Python packaging metadata
 *.egg-info/
 
