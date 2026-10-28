@@ -11,12 +11,12 @@ interface SimulateRequest {
   fixture?: string;
   policy?: string;
   compact?: boolean;
+  workload?: Record<string, unknown>;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as SimulateRequest;
-    const fixture = body.fixture ?? "dev_ray47439_xgboost_deadlock";
     const policy = body.policy ?? "fifo";
     const compact = body.compact ?? false;
 
@@ -26,6 +26,54 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    if (body.workload) {
+      if (isStaticEvidence()) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Custom workload simulation requires the live Python runtime (run locally or via Docker container).",
+          },
+          { status: 400 }
+        );
+      }
+
+      const child = execFile(
+        "python3",
+        ["-m", "nestedtune_guard.cli", "simulate", "-", "--policy", policy],
+        {
+          cwd: PROJECT_ROOT,
+          env: { ...process.env, PYTHONPATH: PROJECT_ROOT },
+          maxBuffer: 50 * 1024 * 1024,
+          timeout: 30_000,
+        }
+      );
+
+      const stdoutChunks: Buffer[] = [];
+      const stderrChunks: Buffer[] = [];
+
+      child.stdout?.on("data", (chunk) => stdoutChunks.push(Buffer.from(chunk)));
+      child.stderr?.on("data", (chunk) => stderrChunks.push(Buffer.from(chunk)));
+
+      child.stdin?.write(JSON.stringify(body.workload));
+      child.stdin?.end();
+
+      await new Promise<void>((resolve, reject) => {
+        child.on("close", (code) => {
+          if (code === 0) resolve();
+          else {
+            const err = Buffer.concat(stderrChunks).toString();
+            reject(new Error(err || `Process exited with code ${code}`));
+          }
+        });
+        child.on("error", reject);
+      });
+
+      const result = JSON.parse(Buffer.concat(stdoutChunks).toString());
+      return NextResponse.json({ ok: true, result });
+    }
+
+    const fixture = body.fixture ?? "dev_ray47439_xgboost_deadlock";
 
     if (isStaticEvidence()) {
       const result = staticSimulation(fixture, policy);
@@ -76,6 +124,7 @@ export async function GET() {
     endpoint: "POST /api/simulate",
     body: {
       fixture: "fixture name (e.g. dev_ray47439_xgboost_deadlock) or path",
+      workload: "custom workload object conforming to WorkloadDefinition schema",
       policy: "fifo | greedy | deadlock_aware",
       compact: "boolean (default false)",
     },

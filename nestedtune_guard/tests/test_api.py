@@ -158,3 +158,100 @@ class TestValidate:
         assert body["pass"] is True
         assert body["fail_count"] == 0
         assert body["total_pairs"] == 14  # 7 fixtures x 2 policies (fifo, greedy)
+
+
+# ---------------------------------------------------------------------------
+# Custom Workload & Advisor
+# ---------------------------------------------------------------------------
+
+class TestCustomWorkloadSimulate:
+    def test_simulate_custom_workload_fifo_deadlock(self, client):
+        custom_wl = {
+            "name": "custom_deadlock_test",
+            "description": "User custom workload with self cycle",
+            "cluster": {"cpu": 4.0, "gpu": 0.0, "memory": 8.0, "workers": 4},
+            "trials": [
+                {
+                    "id": "trial_custom_1",
+                    "parent": {"cpu": 4.0, "gpu": 0.0, "memory": 4.0},
+                    "child": {"cpu": 3.0, "gpu": 0.0, "memory": 2.0},
+                    "duration": 5.0,
+                    "arrival_time": 0.0,
+                }
+            ],
+            "bounded_horizon_s": 30.0,
+        }
+        r = client.post("/simulate", json={"workload": custom_wl, "policy": "fifo"})
+        assert r.status_code == 200
+        body = r.json()
+        assert body["summary"]["completed_trials"] == 0
+        assert body["summary"]["unresolved_trials"] == 1
+        assert body["summary"]["observed_cycle_count"] == 1
+        assert "autoscaling_advice" in body
+
+    def test_simulate_custom_workload_deadlock_aware_rejects(self, client):
+        custom_wl = {
+            "name": "custom_deadlock_test",
+            "description": "User custom workload with self cycle",
+            "cluster": {"cpu": 4.0, "gpu": 0.0, "memory": 8.0, "workers": 4},
+            "trials": [
+                {
+                    "id": "trial_custom_1",
+                    "parent": {"cpu": 4.0, "gpu": 0.0, "memory": 4.0},
+                    "child": {"cpu": 3.0, "gpu": 0.0, "memory": 2.0},
+                    "duration": 5.0,
+                    "arrival_time": 0.0,
+                }
+            ],
+            "bounded_horizon_s": 30.0,
+        }
+        r = client.post("/simulate", json={"workload": custom_wl, "policy": "deadlock_aware"})
+        assert r.status_code == 200
+        body = r.json()
+        assert body["summary"]["rejected_trials"] == 1
+        assert body["summary"]["unresolved_trials"] == 0
+        assert body["summary"]["observed_cycle_count"] == 0
+
+    def test_simulate_missing_both_fixture_and_workload(self, client):
+        r = client.post("/simulate", json={"policy": "fifo"})
+        assert r.status_code == 422
+        assert "either 'fixture' or 'workload'" in r.json()["detail"]
+
+
+class TestAdvise:
+    def test_advise_post_fixture(self, client):
+        r = client.post("/advise", json={"fixture": "dev_ray47439_xgboost_deadlock", "policy": "fifo"})
+        assert r.status_code == 200
+        body = r.json()
+        assert body["fixture"] == "dev_ray47439_xgboost_deadlock"
+        assert body["policy"] == "fifo"
+        assert body["advice"]["has_advice"] is True
+        assert "formatted" in body
+        assert len(body["advice"]["advice"]) > 0
+
+    def test_advise_get_fixture(self, client):
+        r = client.get("/advise?fixture=dev_safe_gang_scheduled&policy=fifo")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["advice"]["has_advice"] is False
+
+    def test_advise_post_custom_workload(self, client):
+        custom_wl = {
+            "name": "custom_capacity_test",
+            "description": "Custom trial exceeding capacity",
+            "cluster": {"cpu": 2.0, "gpu": 0.0, "memory": 4.0, "workers": 2},
+            "trials": [
+                {
+                    "id": "huge_trial",
+                    "parent": {"cpu": 8.0, "gpu": 0.0, "memory": 4.0},
+                    "duration": 5.0,
+                    "arrival_time": 0.0,
+                }
+            ],
+            "bounded_horizon_s": 30.0,
+        }
+        r = client.post("/advise", json={"workload": custom_wl, "policy": "fifo"})
+        assert r.status_code == 200
+        body = r.json()
+        assert body["advice"]["has_advice"] is True
+        assert any(a["type"] == "capacity_shortfall" for a in body["advice"]["advice"])

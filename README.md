@@ -145,7 +145,7 @@ is the public evidence dashboard.
 | `nestedtune_guard/policies/` | FIFO, greedy, deadlock-aware scheduling policies |
 | `nestedtune_guard/observer/` | Wait-for graph construction + cycle detection (observer-only) |
 | `nestedtune_guard/oracle/` | Hand-coded expected outcomes for CP-1 validation |
-| `nestedtune_guard/tests/` | Pytest suite (70 tests) |
+| `nestedtune_guard/tests/` | Pytest suite (76 tests) |
 | `fixtures/development/` | 7 development fixtures (12 trials) |
 | `fixtures/acceptance/` | 2 hash-frozen CP-2 acceptance fixtures |
 | `scripts/run_cp1.sh` | Single-command CP-1 gate |

@@ -10,6 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Activity,
   AlertTriangle,
@@ -20,9 +22,15 @@ import {
   FileText,
   GitBranch,
   Github,
+  HelpCircle,
+  Info,
   Loader2,
   PlayCircle,
+  ShieldCheck,
+  Sliders,
+  Sparkles,
   Terminal,
+  TrendingUp,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -83,6 +91,39 @@ interface SimulationResult {
   }[];
   summary: PolicySummary;
   cluster_snapshot: any;
+  autoscaling_advice?: AutoscalingAdvice;
+}
+
+interface AutoscalingAdviceItem {
+  type: string;
+  capacity_type?: string;
+  trial_ids?: string[];
+  deferred_trial_count?: number;
+  message: string;
+  target_capacity?: number;
+  recommended_cpu?: number;
+  event?: any;
+  unresolved_after?: number;
+}
+
+interface DeferredTrialInfo {
+  trial_id: string;
+  state: string;
+  parent_cpu: number;
+  child_cpu: number;
+  rejection_reason: string | null;
+}
+
+interface AutoscalingAdvice {
+  has_advice: boolean;
+  summary?: string;
+  advice?: AutoscalingAdviceItem[];
+  deferred_trials?: DeferredTrialInfo[];
+  capacity?: {
+    final_free_cpu: number;
+    max_cpu: number;
+    final_capacity_cpu: number;
+  };
 }
 
 interface Scenario {
@@ -573,11 +614,21 @@ function PolicyComparisonSection() {
 // ---------- Interactive Scenario ----------
 function InteractiveScenarioSection() {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [mode, setMode] = useState<"preset" | "custom">("preset");
   const [fixture, setFixture] = useState("dev_ray47439_xgboost_deadlock");
   const [policy, setPolicy] = useState("fifo");
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Custom workload playground state
+  const [customClusterCpu, setCustomClusterCpu] = useState<number>(4);
+  const [customClusterMem, setCustomClusterMem] = useState<number>(8);
+  const [customParentCpu, setCustomParentCpu] = useState<number>(4);
+  const [customChildCpu, setCustomChildCpu] = useState<number>(3);
+  const [customDuration, setCustomDuration] = useState<number>(10);
+  const [includeSecondTrial, setIncludeSecondTrial] = useState<boolean>(false);
+  const [customSecondCpu, setCustomSecondCpu] = useState<number>(2);
 
   useEffect(() => {
     fetch("/api/scenarios")
@@ -592,10 +643,56 @@ function InteractiveScenarioSection() {
     setLoading(true);
     setError(null);
     try {
+      let reqBody: Record<string, unknown>;
+
+      if (mode === "custom") {
+        const trials = [
+          {
+            id: "trial-nested-001",
+            parent: { cpu: customParentCpu, gpu: 0.0, memory: customParentCpu },
+            child:
+              customChildCpu > 0
+                ? { cpu: customChildCpu, gpu: 0.0, memory: customChildCpu }
+                : null,
+            duration: customDuration,
+            arrival_time: 0.0,
+          },
+        ];
+
+        if (includeSecondTrial) {
+          trials.push({
+            id: "trial-competing-002",
+            parent: { cpu: customSecondCpu, gpu: 0.0, memory: customSecondCpu },
+            child: null,
+            duration: 8.0,
+            arrival_time: 1.0,
+          });
+        }
+
+        reqBody = {
+          workload: {
+            name: "custom_interactive_scenario",
+            description: "Custom workload defined via dashboard playground",
+            cluster: {
+              cpu: customClusterCpu,
+              gpu: 0.0,
+              memory: customClusterMem,
+              workers: customClusterCpu,
+            },
+            trials,
+            bounded_horizon_s: 30.0,
+          },
+          policy,
+          compact: false,
+        };
+      } else {
+        reqBody = { fixture, policy, compact: false };
+      }
+
       const r = await fetch("/api/simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fixture, policy, compact: false }),
+        body: JSON.stringify(reqBody),
       });
       const d = await r.json();
       if (d.ok) {
@@ -608,7 +705,18 @@ function InteractiveScenarioSection() {
     } finally {
       setLoading(false);
     }
-  }, [fixture, policy]);
+  }, [
+    mode,
+    fixture,
+    policy,
+    customClusterCpu,
+    customClusterMem,
+    customParentCpu,
+    customChildCpu,
+    customDuration,
+    includeSecondTrial,
+    customSecondCpu,
+  ]);
 
   // Auto-run on first load. Defer the network-triggered state updates until
   // after the effect has returned; the React hooks lint rule treats a direct
@@ -623,48 +731,245 @@ function InteractiveScenarioSection() {
   return (
     <section className="space-y-4">
       <SectionHeader
-        eyebrow="03 · Interactive scenarios"
-        title="Run a fixture under any policy"
-        description="Pick a CP-2 fixture and a policy. Docker runs the Python simulator live; the Vercel deployment serves deterministic CP-2 evidence generated by that same simulator. Both paths return the full event log, telemetry time series, and wait-for graph. The observer remains observer-only for the CP-1 controls."
+        eyebrow="03 · Interactive scenarios & playground"
+        title="Simulate fixtures or custom workloads under any policy"
+        description="Run pre-built CP-2 fixtures or configure custom workloads on the fly. Inspect the live event log, telemetry timeline, wait-for cycle graph, and rule-based autoscaling/deadlock diagnostics."
       />
+
       <Card>
-        <CardHeader>
-          <CardTitle className="font-mono text-sm flex items-center gap-2">
-            <PlayCircle className="h-4 w-4 text-primary" />
-            Scenario controls
+        <CardHeader className="pb-3">
+          <CardTitle className="font-mono text-sm flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <PlayCircle className="h-4 w-4 text-primary" />
+              Interactive controls
+            </span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Select value={fixture} onValueChange={setFixture}>
-              <SelectTrigger className="font-mono text-xs sm:flex-1">
-                <SelectValue placeholder="fixture" />
-              </SelectTrigger>
-              <SelectContent>
-                {scenarios.map((s) => (
-                  <SelectItem key={s.name} value={s.name} className="font-mono text-xs">
-                    {s.name} ({s.trials} trials, {s.cluster.cpu} CPU)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={policy} onValueChange={setPolicy}>
-              <SelectTrigger className="font-mono text-xs sm:w-48">
-                <SelectValue placeholder="policy" />
-              </SelectTrigger>
-              <SelectContent>
-                {POLICIES.map((p) => (
-                  <SelectItem key={p.id} value={p.id} className="font-mono text-xs">
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={runSimulation} disabled={loading} className="font-mono text-xs gap-1">
-              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5" />}
-              {loading ? "running…" : "run"}
-            </Button>
-          </div>
+        <CardContent className="space-y-4">
+          <Tabs
+            value={mode}
+            onValueChange={(v) => setMode(v as "preset" | "custom")}
+            className="w-full"
+          >
+            <TabsList className="grid grid-cols-2 max-w-md">
+              <TabsTrigger value="preset" className="font-mono text-xs">
+                Predefined Fixtures
+              </TabsTrigger>
+              <TabsTrigger value="custom" className="font-mono text-xs gap-1.5">
+                <Sliders className="h-3.5 w-3.5" />
+                Custom Playground
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="preset" className="pt-3 space-y-3">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Select value={fixture} onValueChange={setFixture}>
+                  <SelectTrigger className="font-mono text-xs sm:flex-1">
+                    <SelectValue placeholder="fixture" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scenarios.map((s) => (
+                      <SelectItem
+                        key={s.name}
+                        value={s.name}
+                        className="font-mono text-xs"
+                      >
+                        {s.name} ({s.trials} trials, {s.cluster.cpu} CPU)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={policy} onValueChange={setPolicy}>
+                  <SelectTrigger className="font-mono text-xs sm:w-48">
+                    <SelectValue placeholder="policy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {POLICIES.map((p) => (
+                      <SelectItem
+                        key={p.id}
+                        value={p.id}
+                        className="font-mono text-xs"
+                      >
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={runSimulation}
+                  disabled={loading}
+                  className="font-mono text-xs gap-1"
+                >
+                  {loading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <PlayCircle className="h-3.5 w-3.5" />
+                  )}
+                  {loading ? "running…" : "run"}
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="custom" className="pt-3 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-xs">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-mono text-muted-foreground">
+                    Cluster CPU ({customClusterCpu} cores)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={64}
+                    value={customClusterCpu}
+                    onChange={(e) =>
+                      setCustomClusterCpu(Math.max(1, Number(e.target.value) || 1))
+                    }
+                    className="font-mono text-xs h-8"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-mono text-muted-foreground">
+                    Cluster RAM (GB)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={128}
+                    value={customClusterMem}
+                    onChange={(e) =>
+                      setCustomClusterMem(Math.max(1, Number(e.target.value) || 1))
+                    }
+                    className="font-mono text-xs h-8"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-mono text-muted-foreground">
+                    Trial 1 Parent CPU
+                  </Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={32}
+                    value={customParentCpu}
+                    onChange={(e) =>
+                      setCustomParentCpu(Math.max(1, Number(e.target.value) || 1))
+                    }
+                    className="font-mono text-xs h-8"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-mono text-muted-foreground">
+                    Trial 1 Nested Child CPU
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={32}
+                    value={customChildCpu}
+                    onChange={(e) =>
+                      setCustomChildCpu(Math.max(0, Number(e.target.value) || 0))
+                    }
+                    className="font-mono text-xs h-8"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-mono text-muted-foreground">
+                    Trial 1 Duration (seconds)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={customDuration}
+                    onChange={(e) =>
+                      setCustomDuration(Math.max(1, Number(e.target.value) || 1))
+                    }
+                    className="font-mono text-xs h-8"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-mono text-muted-foreground">
+                    Competing Second Trial
+                  </Label>
+                  <div className="flex items-center gap-2 h-8">
+                    <input
+                      type="checkbox"
+                      id="competing-trial-toggle"
+                      checked={includeSecondTrial}
+                      onChange={(e) => setIncludeSecondTrial(e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    <label
+                      htmlFor="competing-trial-toggle"
+                      className="text-xs cursor-pointer select-none"
+                    >
+                      {includeSecondTrial ? "Included (+2 CPU)" : "Disabled"}
+                    </label>
+                  </div>
+                </div>
+
+                {includeSecondTrial && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-mono text-muted-foreground">
+                      Trial 2 CPU
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={16}
+                      value={customSecondCpu}
+                      onChange={(e) =>
+                        setCustomSecondCpu(Math.max(1, Number(e.target.value) || 1))
+                      }
+                      className="font-mono text-xs h-8"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-border">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    Policy:
+                  </span>
+                  <Select value={policy} onValueChange={setPolicy}>
+                    <SelectTrigger className="font-mono text-xs sm:w-48 h-8">
+                      <SelectValue placeholder="policy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POLICIES.map((p) => (
+                        <SelectItem
+                          key={p.id}
+                          value={p.id}
+                          className="font-mono text-xs"
+                        >
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  onClick={runSimulation}
+                  disabled={loading}
+                  className="font-mono text-xs gap-1.5 w-full sm:w-auto h-8"
+                >
+                  {loading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <PlayCircle className="h-3.5 w-3.5" />
+                  )}
+                  {loading ? "Simulating Custom Workload…" : "Simulate Custom Workload"}
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -678,6 +983,12 @@ function InteractiveScenarioSection() {
 
       {result && (
         <div className="grid gap-4 lg:grid-cols-2">
+          {/* Autoscaling Advisor Card */}
+          <AutoscalingAdvisorCard
+            advice={result.autoscaling_advice}
+            policy={result.policy}
+          />
+
           <Card>
             <CardHeader>
               <CardTitle className="font-mono text-sm flex items-center gap-2">
@@ -769,6 +1080,138 @@ function InteractiveScenarioSection() {
         </div>
       )}
     </section>
+  );
+}
+
+function AutoscalingAdvisorCard({
+  advice,
+  policy,
+}: {
+  advice?: AutoscalingAdvice;
+  policy: string;
+}) {
+  if (!advice) return null;
+
+  const hasAdvice = advice.has_advice;
+  const isDeadlock = advice.advice?.some((a) => a.type === "nested_deadlock");
+  const isShortfall = advice.advice?.some((a) => a.type === "capacity_shortfall");
+  const isOrdering = advice.advice?.some((a) => a.type === "ordering_blocked");
+
+  return (
+    <Card className="lg:col-span-2 border-primary/30 bg-card/75">
+      <CardHeader className="pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <CardTitle className="font-mono text-sm flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Autoscaling &amp; Deadlock Advisor (Rule-Based Diagnostics)
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {!hasAdvice ? (
+              <Badge
+                variant="outline"
+                className="font-mono text-xs border-emerald-500/50 text-emerald-400 bg-emerald-500/10 gap-1"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                OPTIMAL · ZERO STRANDING / CYCLES
+              </Badge>
+            ) : isDeadlock ? (
+              <Badge variant="destructive" className="font-mono text-xs gap-1">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                RAY #47439 DEADLOCK DETECTED
+              </Badge>
+            ) : isShortfall ? (
+              <Badge
+                variant="outline"
+                className="font-mono text-xs border-amber-500/50 text-amber-400 bg-amber-500/10 gap-1"
+              >
+                <TrendingUp className="h-3.5 w-3.5" />
+                CAPACITY SHORTFALL
+              </Badge>
+            ) : isOrdering ? (
+              <Badge
+                variant="outline"
+                className="font-mono text-xs border-blue-500/50 text-blue-400 bg-blue-500/10 gap-1"
+              >
+                <Info className="h-3.5 w-3.5" />
+                ORDERING BLOCKED
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="font-mono text-xs border-purple-500/50 text-purple-400 bg-purple-500/10 gap-1"
+              >
+                <Info className="h-3.5 w-3.5" />
+                HORIZON BOUNDED
+              </Badge>
+            )}
+            <Badge variant="secondary" className="font-mono text-xs uppercase">
+              {policy}
+            </Badge>
+          </div>
+        </div>
+        <CardDescription className="font-mono text-xs">
+          Pure explainable diagnostic over simulation state. Classifies why unresolved trials did not complete and prescribes corrective action.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {advice.summary && !hasAdvice && (
+          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs font-mono text-emerald-300">
+            {advice.summary}
+          </div>
+        )}
+
+        {hasAdvice && advice.advice && advice.advice.length > 0 && (
+          <div className="space-y-2">
+            {advice.advice.map((item, idx) => (
+              <div
+                key={idx}
+                className="rounded-md border border-border bg-muted/40 p-3 text-xs font-mono space-y-1.5"
+              >
+                <div className="flex items-center justify-between font-semibold">
+                  <span className="text-primary uppercase tracking-wide">
+                    [{item.type.replace(/_/g, " ")}]
+                  </span>
+                  {item.trial_ids && item.trial_ids.length > 0 && (
+                    <span className="text-muted-foreground">
+                      Trials: {item.trial_ids.join(", ")}
+                    </span>
+                  )}
+                </div>
+                <p className="text-foreground leading-relaxed">{item.message}</p>
+                {item.target_capacity !== undefined && (
+                  <p className="text-amber-400 font-bold">
+                    → Recommended cluster scale-up: {item.target_capacity} CPU
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {advice.capacity && (
+          <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-border/60 text-xs font-mono text-muted-foreground">
+            <div>
+              Final Free CPU:{" "}
+              <span className="text-foreground font-semibold">
+                {advice.capacity.final_free_cpu}
+              </span>
+            </div>
+            <div>
+              Max Capacity CPU:{" "}
+              <span className="text-foreground font-semibold">
+                {advice.capacity.max_cpu}
+              </span>
+            </div>
+            <div>
+              Deferred / Unresolved:{" "}
+              <span className="text-foreground font-semibold">
+                {advice.deferred_trials?.length ?? 0} trial(s)
+              </span>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

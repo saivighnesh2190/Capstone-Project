@@ -44,8 +44,12 @@ def _fixture_path(name_or_path: str) -> Path:
 
 
 def cmd_simulate(args: argparse.Namespace) -> int:
-    fixture_path = _fixture_path(args.fixture)
-    definition = validate_workload_file(fixture_path)
+    if args.fixture == "-":
+        data = json.load(sys.stdin)
+        definition = WorkloadDefinition.from_dict(data)
+    else:
+        fixture_path = _fixture_path(args.fixture)
+        definition = validate_workload_file(fixture_path)
     result = simulate(definition, args.policy)
     if args.summary_only:
         # Print only summary block (compact)

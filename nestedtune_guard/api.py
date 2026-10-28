@@ -23,7 +23,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from nestedtune_guard import __version__
-from nestedtune_guard.schema import validate_workload_file
+from nestedtune_guard.schema import WorkloadDefinition, validate_workload_file
 from nestedtune_guard.simulator import simulate, get_policy
 from nestedtune_guard.oracle import expected_for, all_fixtures
 
@@ -51,12 +51,32 @@ FIXTURE_ROOT = next(
 # ---------------------------------------------------------------------------
 
 class SimulateRequest(BaseModel):
-    fixture: str = Field(
-        ...,
+    fixture: str | None = Field(
+        None,
         description="Fixture name (e.g. dev_ray47439_xgboost_deadlock) or path to a JSON fixture file.",
+    )
+    workload: dict[str, Any] | None = Field(
+        None,
+        description="Optional custom workload definition conforming to the WorkloadDefinition schema.",
     )
     policy: str = Field(
         ...,
+        description="Scheduling policy: fifo, greedy, or deadlock_aware.",
+        pattern=r"^(fifo|greedy|deadlock_aware)$",
+    )
+
+
+class AdviseRequest(BaseModel):
+    fixture: str | None = Field(
+        None,
+        description="Fixture name (e.g. dev_ray47439_xgboost_deadlock) or path to a JSON fixture file.",
+    )
+    workload: dict[str, Any] | None = Field(
+        None,
+        description="Optional custom workload definition conforming to the WorkloadDefinition schema.",
+    )
+    policy: str = Field(
+        "fifo",
         description="Scheduling policy: fifo, greedy, or deadlock_aware.",
         pattern=r"^(fifo|greedy|deadlock_aware)$",
     )
@@ -105,16 +125,36 @@ def scenarios() -> dict[str, list[str]]:
 
 @app.post("/simulate")
 def simulate_endpoint(body: SimulateRequest) -> dict[str, Any]:
-    """Run a single (fixture, policy) pair in-process."""
-    try:
-        path = _resolve_fixture(body.fixture)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    """Run a single (fixture or custom workload, policy) pair in-process."""
+    if body.fixture is None and body.workload is None:
+        raise HTTPException(
+            status_code=422,
+            detail="either 'fixture' or 'workload' must be provided",
+        )
 
-    try:
-        definition = validate_workload_file(path)
-    except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"schema validation failed: {exc}") from exc
+    if body.workload is not None:
+        try:
+            definition = WorkloadDefinition.from_dict(body.workload)
+            fixture_source = body.workload.get("name", "custom_workload")
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"workload schema validation failed: {exc}",
+            ) from exc
+    else:
+        try:
+            path = _resolve_fixture(body.fixture)  # type: ignore[arg-type]
+            fixture_source = str(path)
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+        try:
+            definition = validate_workload_file(path)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"schema validation failed: {exc}",
+            ) from exc
 
     try:
         policy_name = body.policy.lower().replace("-", "_")
@@ -124,8 +164,67 @@ def simulate_endpoint(body: SimulateRequest) -> dict[str, Any]:
 
     result = simulate(definition, policy_name)
     out = result.to_dict()
-    out["fixture_path"] = str(path)
+    out["fixture_path"] = fixture_source
     return out
+
+
+@app.post("/advise")
+def advise_endpoint(body: AdviseRequest) -> dict[str, Any]:
+    """Run simulation and return explainable autoscaling & deadlock diagnostic advice."""
+    if body.fixture is None and body.workload is None:
+        raise HTTPException(
+            status_code=422,
+            detail="either 'fixture' or 'workload' must be provided",
+        )
+
+    if body.workload is not None:
+        try:
+            definition = WorkloadDefinition.from_dict(body.workload)
+            fixture_name = definition.name
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"workload schema validation failed: {exc}",
+            ) from exc
+    else:
+        try:
+            path = _resolve_fixture(body.fixture)  # type: ignore[arg-type]
+            fixture_name = path.stem
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+        try:
+            definition = validate_workload_file(path)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"schema validation failed: {exc}",
+            ) from exc
+
+    try:
+        policy_name = body.policy.lower().replace("-", "_")
+        get_policy(policy_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    result = simulate(definition, policy_name)
+    from nestedtune_guard.advisor import build_advice, format_advice
+    return {
+        "fixture": fixture_name,
+        "policy": policy_name,
+        "summary": result.summary.to_dict(),
+        "advice": build_advice(result),
+        "formatted": format_advice(result),
+    }
+
+
+@app.get("/advise")
+def advise_get_endpoint(
+    fixture: str = "dev_ray47439_xgboost_deadlock",
+    policy: str = "fifo",
+) -> dict[str, Any]:
+    """Convenience GET endpoint for autoscaling advice on a fixture."""
+    return advise_endpoint(AdviseRequest(fixture=fixture, policy=policy))
 
 
 @app.get("/benchmark")
