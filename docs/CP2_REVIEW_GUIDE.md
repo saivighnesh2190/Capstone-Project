@@ -436,7 +436,7 @@ A: “A bounded horizon makes unresolved behavior measurable and prevents a dead
 2. Memorize the 30-second answer and the one-line algorithm difference.
 3. Memorize the result table: FIFO 5/12, Greedy 7/12, CP-2 7/12 + 5 rejected + 0 unresolved.
 4. Practice explaining the 4/4/1/3 Ray evidence.
-5. Replace `[Reg. No.]`, `[Batch]`, `[Guide ID]`, and `[Project Guide Name]` in the PPT before presenting.
+5. Cover slide is already final: four team members with registration numbers, Guide ID 8199 / Mr. Rambabu Kalathoti, Batch CSE-2. Regenerate from `scripts/create_cp2_review_deck.py` rather than editing the PPTX by hand, so the two stay in sync.
 6. Do not claim Hyperband, ASHA, DRF, or Chandy–Misra–Haas was implemented. Say they informed the background/design discussion.
 7. If asked something unknown, say: “That is outside the current simulator scope; it is a limitation/future-work item.”
 

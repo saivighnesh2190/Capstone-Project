@@ -135,7 +135,7 @@ def build() -> Path:
     set_text(s, 2, "1")
     set_text(s, 3, "REVIEW-II")
     set_text(s, 4, "NestedTune Guard: Deadlock-Aware Distributed Hyperparameter Tuning for Nested Trainers")
-    set_text(s, 5, "Project ID: CINT-11  |  Batch: [Batch]")
+    set_text(s, 5, "Project ID: CINT-11  |  Batch: CSE-2")
     set_text(s, 6, "KONERU LAKSHMAIAH EDUCATION FOUNDATION")
     # The supplied team list is four members. Put the user/presenter first,
     # then preserve the remaining order from the supplied image.
@@ -159,8 +159,8 @@ def build() -> Path:
     set_text(s, reg_row_4, "2300031256")
     set_text(s, name_row_4, "CHOPPARAPU JESWANTH VARUN")
     set_text(s, role_row_4, "Member")
-    set_text(s, 21, "[Guide ID]")
-    set_text(s, 23, "[Project Guide Name]")
+    set_text(s, 21, "8199")
+    set_text(s, 23, "Mr.Rambabu Kalathoti")
 
     # Slide 2 — preserve the reference outline and update its chrome.
     s = prs.slides[1]
@@ -366,7 +366,7 @@ def build() -> Path:
     set_text(s, 3, "THANK YOU")
     set_text(s, 4, "NestedTune Guard")
     set_text(s, 5, "Questions & Discussion")
-    set_text(s, 6, "Project ID CINT-11  |  Batch: [Batch]")
+    set_text(s, 6, "Project ID CINT-11  |  Batch: CSE-2")
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     prs.save(str(OUTPUT))
