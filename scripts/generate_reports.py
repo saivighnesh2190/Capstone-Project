@@ -18,7 +18,6 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from datetime import datetime
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -53,10 +52,13 @@ PROJECT_META = {
     "code": "CINT-11",
     "title": "Deadlock-Aware Distributed Hyperparameter Tuning for Nested Trainers",
     "subtitle": "NestedTune Guard — Capstone Project",
-    "team_label": "[Team Member 1, 2, 3 — Registration Numbers]",
-    "guide_label": "[Project Guide Name]",
+    "team_label": (
+        "Nekkanti Sai Vighnesh (2300030455), Bagadi Pavan Kumar (2300030062), "
+        "Bhimisetty Mahesh Adithya (2300030983), Choparapu Jeswanth Varun (2300031256)"
+    ),
+    "guide_label": "Mr. Rambabu Kalathoti (Guide ID 8199)",
     "domain": "Distributed systems · Ray Tune · Ray Train · Python · Docker · Kubernetes",
-    "date": datetime.now().strftime("%Y-%m-%d"),
+    "date": "2026-09-22",
     "version": "1.1.0",
 }
 
