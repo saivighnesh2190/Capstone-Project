@@ -7,6 +7,12 @@ const DOWNLOADS = {
   "PROJECT_REVIEW_CHECKLIST.md": "text/markdown; charset=utf-8",
   "CINT-11_CP1_Report.pdf": "application/pdf",
   "CINT-11_CP2_Report.pdf": "application/pdf",
+  "CINT-11_CP1_Report.docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "CINT-11_CP2_Report.docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "CINT-11_CP2_Review-II.pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "CINT-11_Poster_Presentation.pdf": "application/pdf",
+  "CINT-11_Poster_Presentation.png": "image/png",
+  "CINT-11_Poster_Presentation.html": "text/html; charset=utf-8",
 } as const;
 
 type DownloadName = keyof typeof DOWNLOADS;
